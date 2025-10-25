@@ -1,0 +1,31 @@
+on:
+  push:
+    branches:
+      - main
+
+name: CI
+
+jobs:
+  cargo-test:
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install nasm
+        uses: ilammy/setup-nasm@v1
+        if: startsWith(matrix.os, 'windows')
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
