@@ -1,10 +1,15 @@
 [package]
 description = "`span` is a region of source code"
-documentation = "https://docs.rs/parserc-span"
+documentation = "https://docs.rs/sourcespan"
 edition = "2024"
 license = "MIT"
-name = "parserc-span"
+name = "sourcespan"
 repository = "https://github.com/markdown-labs/parserc/crates/span"
 version.workspace = true
 
 [dependencies]
+serde = { version = "1.0.228", optional = true }
+
+[features]
+default = ["serde"]
+serde = ["dep:serde","serde/derive"]

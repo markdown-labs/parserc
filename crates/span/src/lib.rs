@@ -7,6 +7,7 @@ use std::{
 };
 
 /// A region of source code.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Span<Idx> {
     /// No value.
@@ -47,7 +48,7 @@ impl<Idx> From<RangeFull> for Span<Idx> {
 
 impl<Idx> Span<Idx>
 where
-    Idx: PartialOrd + Ord + Copy,
+    Idx: Ord + Copy,
 {
     /// Create a range between two `span`s.
     ///

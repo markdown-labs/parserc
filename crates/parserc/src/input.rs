@@ -1,0 +1,73 @@
+//！ Abstract of source code for `parserc`.
+
+use std::fmt::Debug;
+
+use sourcespan::Span;
+
+/// The item type of the input sequence.
+pub trait Item: PartialEq + Clone + Copy + Debug {
+    fn len(&self) -> usize;
+}
+
+impl Item for u8 {
+    #[inline(always)]
+    fn len(&self) -> usize {
+        1
+    }
+}
+
+impl Item for char {
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.len_utf8()
+    }
+}
+
+/// Input sequence for source code.
+pub trait Input: PartialEq + Debug {
+    /// Sequeue item.
+    type Item: Item;
+    /// Position type for this input.
+    type Position: Ord + Copy;
+    /// Iterator type returns by [`iter`](Input::iter).
+    type Iter: Iterator<Item = Self::Item>;
+    /// Iterator type returns by [`iter_indices`](Input::iter_indices).
+    type IterIndices: Iterator<Item = (usize, Self::Item)>;
+
+    // Returns current input sequence length.
+    fn len(&self) -> usize;
+
+    /// Split the input into two at the given index.
+    ///
+    /// Afterwards self contains elements [at, len), and the returned BytesMut contains elements [0, at).
+    fn split_to(&mut self, at: usize) -> Self;
+
+    /// Split the input into two at the given index.
+    ///
+    /// Afterwards self contains elements [0, at), and the returned `Self` contains elements [at, capacity).
+    fn split_off(&mut self, at: usize) -> Self;
+
+    /// Returns an immutable iterator over source code chars.
+    fn iter(&self) -> Self::Iter;
+
+    /// Returns an immutable iterator over source code chars.
+    fn iter_indices(&self) -> Self::IterIndices;
+
+    /// Returns the start position of this input in the whole source code.
+    fn start(&self) -> Self::Position;
+
+    /// Returns the end position of this input in the whole source code.
+    fn end(&self) -> Self::Position;
+
+    /// Returns true if this input length == 0.
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Returns the region of this input in the whole source code.
+    #[inline]
+    fn to_span(&self) -> Span<Self::Position> {
+        Span::Range(self.start()..self.end())
+    }
+}

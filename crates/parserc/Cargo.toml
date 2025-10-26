@@ -1,0 +1,12 @@
+[package]
+description = "Parser combinator for `rust` language."
+documentation = "https://docs.rs/parserc"
+edition = "2024"
+license = "MIT"
+name = "parserc"
+repository = "https://github.com/markdown-labs/parserc"
+version.workspace = true
+
+
+[dependencies]
+sourcespan = { version = "^0.10", path = "../span" }
