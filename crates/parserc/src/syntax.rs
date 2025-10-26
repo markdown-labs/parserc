@@ -9,6 +9,20 @@ use crate::{
     parser::Parser,
 };
 
+/// An extension trait to help syntax struct parsing.
+pub trait InputSyntaxExt: Input {
+    /// Parse a specific `Syntax` type.
+    #[inline]
+    fn parse<S, E>(self) -> crate::errors::Result<S, Self, E>
+    where
+        Self: Sized,
+        S: Syntax<Self, E>,
+        E: ParseError<Self>,
+    {
+        S::parse(self)
+    }
+}
+
 /// A syntax tree struct/enum should implment this trait
 pub trait Syntax<I, E>: Sized
 where

@@ -15,6 +15,7 @@ memchr = { version = "2.7.6", optional = true }
 serde = { version = "1.0.228", optional = true }
 
 [features]
-default = ["lang","serde"]
+default = ["lang","serde","syntax"]
 lang = ["memchr"]
 serde = ["dep:serde","serde/derive", "sourcespan/serde"]
+syntax = []
