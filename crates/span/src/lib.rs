@@ -3,7 +3,7 @@
 
 use std::{
     cmp,
-    ops::{Range, RangeFrom, RangeTo},
+    ops::{Range, RangeFrom, RangeFull, RangeTo},
 };
 
 /// A region of source code.
@@ -19,6 +19,30 @@ pub enum Span<Idx> {
     RangeTo(RangeTo<Idx>),
     /// Match the whole source code.
     RangeFull,
+}
+
+impl<Idx> From<Range<Idx>> for Span<Idx> {
+    fn from(value: Range<Idx>) -> Self {
+        Self::Range(value)
+    }
+}
+
+impl<Idx> From<RangeFrom<Idx>> for Span<Idx> {
+    fn from(value: RangeFrom<Idx>) -> Self {
+        Self::RangeFrom(value)
+    }
+}
+
+impl<Idx> From<RangeTo<Idx>> for Span<Idx> {
+    fn from(value: RangeTo<Idx>) -> Self {
+        Self::RangeTo(value)
+    }
+}
+
+impl<Idx> From<RangeFull> for Span<Idx> {
+    fn from(_: RangeFull) -> Self {
+        Self::RangeFull
+    }
 }
 
 impl<Idx> Span<Idx>
@@ -147,7 +171,13 @@ where
 
                 Span::RangeTo(..end)
             }
-            (Span::RangeTo(_), Span::RangeFrom(_)) => Span::RangeFull,
+            (Span::RangeTo(range_to), Span::RangeFrom(range_from)) => {
+                if range_to.end < range_from.start {
+                    return Span::None;
+                }
+
+                return Span::RangeFull;
+            }
             (Span::RangeTo(range_to), Span::RangeTo(other_range_to)) => {
                 let end = cmp::max(range_to.end, other_range_to.end);
 
@@ -163,5 +193,93 @@ where
             (Span::RangeFull, Span::RangeTo(_)) => Span::RangeFull,
             (Span::RangeFull, Span::RangeFull) => Span::RangeFull,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_between() {
+        assert_eq!(
+            Span::Range(0..10).between(&Span::Range(12..20)),
+            Span::Range(10..12)
+        );
+
+        assert_eq!(
+            Span::Range(12..20).between(&Span::Range(0..10)),
+            Span::Range(10..12)
+        );
+
+        assert_eq!(Span::Range(12..20).between(&Span::Range(0..14)), Span::None);
+
+        assert_eq!(
+            Span::RangeFrom(15..).between(&Span::Range(0..14)),
+            Span::Range(14..15)
+        );
+
+        assert_eq!(
+            Span::Range(0..14).between(&Span::RangeFrom(15..)),
+            Span::Range(14..15)
+        );
+
+        assert_eq!(
+            Span::RangeFrom(15..).between(&Span::RangeTo(..14)),
+            Span::Range(14..15)
+        );
+
+        assert_eq!(
+            Span::RangeFrom(14..).between(&Span::RangeTo(..15)),
+            Span::None
+        );
+
+        assert_eq!(
+            Span::RangeFrom(14..).between(&Span::RangeFrom(15..)),
+            Span::None
+        );
+
+        assert_eq!(
+            Span::RangeTo(..14).between(&Span::RangeTo(..18)),
+            Span::None
+        );
+
+        assert_eq!(
+            Span::RangeTo(..18).between(&Span::RangeTo(..14)),
+            Span::None
+        );
+    }
+
+    #[test]
+    fn test_union() {
+        assert_eq!(
+            Span::RangeTo(..14).union(&Span::RangeFrom(18..)),
+            Span::None
+        );
+
+        assert_eq!(
+            Span::Range(1..14).union(&Span::Range(13..18)),
+            Span::Range(1..18)
+        );
+
+        assert_eq!(
+            Span::Range(1..14).union(&Span::Range(2..14)),
+            Span::Range(1..14)
+        );
+
+        assert_eq!(
+            Span::Range(4..14).union(&Span::Range(3..4)),
+            Span::Range(3..14)
+        );
+
+        assert_eq!(
+            Span::Range(4..14).union(&Span::Range(1..5)),
+            Span::Range(1..14)
+        );
+
+        assert_eq!(
+            Span::RangeTo(..18).union(&Span::RangeTo(..14)),
+            Span::RangeTo(..18)
+        );
     }
 }
