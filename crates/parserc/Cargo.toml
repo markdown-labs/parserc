@@ -9,4 +9,12 @@ version.workspace = true
 
 
 [dependencies]
+thiserror = "2.0.17"
 sourcespan = { version = "^0.10", path = "../span" }
+memchr = { version = "2.7.6", optional = true }
+serde = { version = "1.0.228", optional = true }
+
+[features]
+default = ["lang","serde"]
+lang = ["memchr"]
+serde = ["dep:serde","serde/derive", "sourcespan/serde"]

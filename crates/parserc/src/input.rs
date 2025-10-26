@@ -4,6 +4,30 @@ use std::fmt::Debug;
 
 use sourcespan::Span;
 
+/// An extension trait provides extra `starts_with` func to `Input`.
+pub trait StartWith<Needle> {
+    /// Convert the input type to a byte slice
+    fn starts_with(&self, needle: Needle) -> Option<usize>;
+}
+
+/// An extension trait providers extra `find` func to `Input`.
+pub trait Find<Needle> {
+    /// Returns the index of the first occurrence of the given needle.
+    fn find(&self, needle: Needle) -> Option<usize>;
+}
+
+/// Convert `Input` as `&[u8]`
+pub trait AsBytes {
+    /// Convert the input type to a byte slice
+    fn as_bytes(&self) -> &[u8];
+}
+
+/// Convert `Input` as `&str`
+pub trait AsStr {
+    /// Convert the input type to a str slice
+    fn as_str(&self) -> &str;
+}
+
 /// The item type of the input sequence.
 pub trait Item: PartialEq + Clone + Copy + Debug {
     fn len(&self) -> usize;
