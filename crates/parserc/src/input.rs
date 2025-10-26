@@ -1,4 +1,4 @@
-//！ Abstract of source code for `parserc`.
+//! Abstract of source code for `parserc`.
 
 use std::fmt::Debug;
 

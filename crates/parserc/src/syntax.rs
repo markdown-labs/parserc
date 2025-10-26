@@ -247,6 +247,9 @@ where
     }
 }
 
+// implement Syntax for tuple (T1,T2,...) where T1: Syntax, T2: Syntax, ...
+parserc_derive::derive_tuple_syntax!(16);
+
 #[cfg(test)]
 mod tests {
     use crate::{errors::ParseError, input::Input, syntax::Syntax};

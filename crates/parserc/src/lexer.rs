@@ -1,4 +1,4 @@
-//! Parser combinators for tokenizer.
+//! Parser combinators for tokenizer/lexer.
 
 use std::fmt::Debug;
 

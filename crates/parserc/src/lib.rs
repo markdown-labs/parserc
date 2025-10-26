@@ -1,4 +1,4 @@
-//！ Parser combinator for `rust` language.
+//! Parse combinator framework for `rust` language.
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod input;
@@ -8,6 +8,6 @@ pub mod input;
 pub mod lang;
 
 pub mod errors;
+pub mod lexer;
 pub mod parser;
 pub mod syntax;
-pub mod tokenizer;

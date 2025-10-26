@@ -13,6 +13,7 @@ name = "parserc"
 version = "0.10.0"
 dependencies = [
  "memchr",
+ "parserc-derive",
  "serde",
  "sourcespan",
  "thiserror",

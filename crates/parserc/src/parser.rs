@@ -1,3 +1,5 @@
+//! Traits for parser combinators.
+
 use crate::{
     errors::{ControlFlow, ParseError, Result},
     input::Input,
