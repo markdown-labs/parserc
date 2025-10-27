@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{
-    Attribute, Error, Ident, Item, ItemEnum, ItemStruct, Path, Result, meta, parse::Parser,
-    parse_macro_input, spanned::Spanned, token::Token,
+    Attribute, Error, Ident, Item, ItemEnum, ItemStruct, Path, Result, WhereClause, meta,
+    parse::Parser, parse_macro_input, spanned::Spanned, token::Token,
 };
 
 pub fn derive_syntax(input: TokenStream) -> TokenStream {
