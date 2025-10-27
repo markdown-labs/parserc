@@ -37,6 +37,3 @@ where
     /// Ensure this error is an fatal error.
     fn into_fatal(self) -> Self;
 }
-
-/// `Result` type used by `parserc`
-pub type Result<T, I, E> = std::result::Result<(T, I), E>;

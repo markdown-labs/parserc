@@ -2,18 +2,13 @@
 
 use std::{fmt::Debug, marker::PhantomData};
 
-use crate::{
-    errors::{ParseError, Result},
-    input::Input,
-    lang::LangInput,
-    parser::Parser,
-};
+use crate::{errors::ParseError, input::Input, parser::Parser};
 
 /// An extension trait to help syntax struct parsing.
 pub trait InputSyntaxExt: Input {
     /// Parse a specific `Syntax` type.
     #[inline]
-    fn parse<S, E>(self) -> crate::errors::Result<S, Self, E>
+    fn parse<S, E>(&mut self) -> Result<S, E>
     where
         Self: Sized,
         S: Syntax<Self, E>,
@@ -30,7 +25,7 @@ where
     E: ParseError<I>,
 {
     /// Parse input data and construct a new `Syntax` instance.
-    fn parse(input: I) -> Result<Self, I, E>;
+    fn parse(input: &mut I) -> Result<Self, E>;
 
     /// Create a new `Parser` from this type.
     fn into_parser() -> impl Parser<I, Output = Self, Error = E> {
@@ -50,7 +45,7 @@ where
 
     type Output = T;
 
-    fn parse(self, input: I) -> Result<Self::Output, I, Self::Error> {
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Error> {
         T::parse(input)
     }
 }
@@ -60,8 +55,8 @@ where
     I: Input,
     E: ParseError<I>,
 {
-    fn parse(input: I) -> Result<Self, I, E> {
-        Ok((Self::default(), input))
+    fn parse(_input: &mut I) -> Result<Self, E> {
+        Ok(Self::default())
     }
 }
 
@@ -71,7 +66,7 @@ where
     I: Input + Clone,
     E: ParseError<I>,
 {
-    fn parse(input: I) -> Result<Self, I, E> {
+    fn parse(input: &mut I) -> Result<Self, E> {
         T::into_parser().ok().parse(input)
     }
 }
@@ -82,7 +77,7 @@ where
     I: Input + Clone,
     E: ParseError<I>,
 {
-    fn parse(input: I) -> Result<Self, I, E> {
+    fn parse(input: &mut I) -> Result<Self, E> {
         T::into_parser().boxed().parse(input)
     }
 }
@@ -93,11 +88,10 @@ where
     I: Input + Clone,
     E: ParseError<I>,
 {
-    fn parse(mut input: I) -> Result<Self, I, E> {
+    fn parse(input: &mut I) -> Result<Self, E> {
         let mut elms = vec![];
         loop {
-            let elm;
-            (elm, input) = T::into_parser().ok().parse(input)?;
+            let elm = T::into_parser().ok().parse(input)?;
 
             let Some(elm) = elm else {
                 break;
@@ -106,7 +100,7 @@ where
             elms.push(elm);
         }
 
-        Ok((elms, input))
+        Ok(elms)
     }
 }
 
@@ -124,18 +118,18 @@ pub struct Delimiter<Start, End, Body> {
 
 impl<I, E, Start, End, Body> Syntax<I, E> for Delimiter<Start, End, Body>
 where
-    I: Input,
+    I: Input + Clone,
     E: ParseError<I>,
     Start: Syntax<I, E>,
     End: Syntax<I, E>,
     Body: Syntax<I, E>,
 {
-    fn parse(input: I) -> Result<Self, I, E> {
-        let (start, input) = Start::parse(input)?;
-        let (body, input) = Body::into_parser().fatal().parse(input)?;
-        let (end, input) = End::into_parser().fatal().parse(input)?;
+    fn parse(input: &mut I) -> Result<Self, E> {
+        let start = Start::parse(input)?;
+        let body = Body::into_parser().fatal().parse(input)?;
+        let end = End::into_parser().fatal().parse(input)?;
 
-        Ok((Self { start, body, end }, input))
+        Ok(Self { start, body, end })
     }
 }
 
@@ -156,28 +150,23 @@ where
     E: ParseError<I>,
     I: Input + Clone,
 {
-    fn parse(mut input: I) -> Result<Self, I, E> {
+    fn parse(input: &mut I) -> Result<Self, E> {
         let mut pairs = vec![];
 
         loop {
-            let t;
-            (t, input) = T::into_parser().ok().parse(input)?;
+            let t = T::into_parser().ok().parse(input)?;
 
             let Some(t) = t else {
-                return Ok((Self { pairs, tail: None }, input));
+                return Ok(Self { pairs, tail: None });
             };
 
-            let p;
-            (p, input) = P::into_parser().ok().parse(input)?;
+            let p = P::into_parser().ok().parse(input)?;
 
             let Some(p) = p else {
-                return Ok((
-                    Self {
-                        pairs,
-                        tail: Some(Box::new(t)),
-                    },
-                    input,
-                ));
+                return Ok(Self {
+                    pairs,
+                    tail: Some(Box::new(t)),
+                });
             };
 
             pairs.push((t, p));
@@ -197,19 +186,19 @@ pub enum Or<F, S> {
 
 impl<I, E, F, S> Syntax<I, E> for Or<F, S>
 where
-    I: LangInput,
+    I: Input + Clone,
     E: ParseError<I>,
     F: Syntax<I, E>,
     S: Syntax<I, E>,
 {
-    fn parse(input: I) -> Result<Self, I, E> {
-        let (Some(first), input) = F::into_parser().ok().parse(input.clone())? else {
-            let (s, input) = S::parse(input)?;
+    fn parse(input: &mut I) -> Result<Self, E> {
+        let Some(first) = F::into_parser().ok().parse(input)? else {
+            let s = S::parse(input)?;
 
-            return Ok((Self::Second(s), input));
+            return Ok(Self::Second(s));
         };
 
-        Ok((Self::First(first), input))
+        Ok(Self::First(first))
     }
 }
 
@@ -220,7 +209,7 @@ where
     E: ParseError<I>,
 {
     ///  Use the parsed prefix to parse the syntax tree.
-    fn parse_with_prefix(prefix: P, input: I) -> Result<Self, I, E>;
+    fn parse_with_prefix(prefix: P, input: &mut I) -> Result<Self, E>;
 
     /// Create a new `Parser` with parsed prefix subtree.
     fn into_parser_with_prefix(prefix: P) -> impl Parser<I, Output = Self, Error = E> {
@@ -245,7 +234,7 @@ where
 
     type Output = T;
 
-    fn parse(self, input: I) -> Result<Self::Output, I, Self::Error> {
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Error> {
         T::parse_with_prefix(self.0, input)
     }
 }
@@ -265,8 +254,8 @@ mod tests {
         I: Input,
         E: ParseError<I>,
     {
-        fn parse(input: I) -> crate::errors::Result<Self, I, E> {
-            Ok((Mock, input))
+        fn parse(_input: &mut I) -> Result<Self, E> {
+            Ok(Mock)
         }
     }
 }

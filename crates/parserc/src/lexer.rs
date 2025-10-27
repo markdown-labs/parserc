@@ -12,18 +12,18 @@ use crate::{
 #[inline]
 pub fn next<I, E>(item: I::Item) -> impl Parser<I, Output = I, Error = E>
 where
-    I: Input,
+    I: Input + Clone,
     E: ParseError<I>,
 {
-    move |mut input: I| {
+    move |input: &mut I| {
         if let Some(next) = input.iter().next() {
             if next == item {
-                return Ok((input.split_to(item.len()), input));
+                return Ok(input.split_to(item.len()));
             }
 
-            Err((ControlFlow::Recovable, Kind::Next, input).into())
+            Err((ControlFlow::Recovable, Kind::Next, input.clone()).into())
         } else {
-            Err((ControlFlow::Incomplete, Kind::Next, input).into())
+            Err((ControlFlow::Incomplete, Kind::Next, input.clone()).into())
         }
     }
 }
@@ -32,19 +32,19 @@ where
 #[inline]
 pub fn next_if<I, E, F>(f: F) -> impl Parser<I, Output = I, Error = E>
 where
-    I: Input,
+    I: Input + Clone,
     E: ParseError<I>,
     F: FnOnce(I::Item) -> bool,
 {
-    move |mut input: I| {
+    move |input: &mut I| {
         if let Some(next) = input.iter().next() {
             if f(next) {
-                return Ok((input.split_to(next.len()), input));
+                return Ok(input.split_to(next.len()));
             }
 
-            Err((ControlFlow::Recovable, Kind::NextIf, input).into())
+            Err((ControlFlow::Recovable, Kind::NextIf, input.clone()).into())
         } else {
-            Err((ControlFlow::Recovable, Kind::NextIf, input).into())
+            Err((ControlFlow::Recovable, Kind::NextIf, input.clone()).into())
         }
     }
 }
@@ -53,15 +53,15 @@ where
 #[inline]
 pub fn keyword<KW, I, E>(keyword: KW) -> impl Parser<I, Output = I, Error = E>
 where
-    I: Input + StartWith<KW>,
+    I: Input + StartWith<KW> + Clone,
     E: ParseError<I>,
     KW: Debug + Clone,
 {
-    move |mut input: I| {
+    move |input: &mut I| {
         if let Some(len) = input.starts_with(keyword.clone()) {
-            Ok((input.split_to(len), input))
+            Ok(input.split_to(len))
         } else {
-            Err((ControlFlow::Recovable, Kind::Keyword, input).into())
+            Err((ControlFlow::Recovable, Kind::Keyword, input.clone()).into())
         }
     }
 }
@@ -76,11 +76,11 @@ where
     I: Input + Find<K>,
     E: ParseError<I>,
 {
-    move |mut input: I| {
+    move |input: &mut I| {
         if let Some(offset) = input.find(keyword.clone()) {
-            Ok((input.split_to(offset), input))
+            Ok(input.split_to(offset))
         } else {
-            Ok((input.split_to(0), input))
+            Ok(input.split_to(0))
         }
     }
 }
@@ -95,7 +95,7 @@ where
     E: ParseError<I>,
     F: FnMut(I::Item) -> bool,
 {
-    move |mut input: I| {
+    move |input: &mut I| {
         let mut iter = input.iter();
         let mut offset = 0;
         loop {
@@ -110,7 +110,7 @@ where
             }
         }
 
-        return Ok((input.split_to(offset), input));
+        Ok(input.split_to(offset))
     }
 }
 

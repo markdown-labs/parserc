@@ -1,7 +1,7 @@
 //! Traits for parser combinators.
 
 use crate::{
-    errors::{ControlFlow, ParseError, Result},
+    errors::{ControlFlow, ParseError},
     input::Input,
 };
 
@@ -15,7 +15,7 @@ where
     type Error: ParseError<I>;
 
     /// Consumes itself and parses the input stream to generate the `output` product.
-    fn parse(self, input: I) -> Result<Self::Output, I, Self::Error>;
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Error>;
 
     /// Creates a new parser that converts `non-fatal` error into `None` value.
     #[inline]
@@ -71,14 +71,14 @@ where
 impl<O, I, E, F> Parser<I> for F
 where
     I: Input,
-    F: FnOnce(I) -> Result<O, I, E>,
+    F: FnOnce(&mut I) -> Result<O, E>,
     E: ParseError<I>,
 {
     type Output = O;
     type Error = E;
 
     #[inline]
-    fn parse(self, input: I) -> Result<Self::Output, I, Self::Error> {
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Error> {
         self(input)
     }
 }
@@ -95,12 +95,17 @@ where
     type Error = P::Error;
 
     #[inline]
-    fn parse(self, input: I) -> Result<Self::Output, I, Self::Error> {
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Error> {
+        let snapshot = input.clone();
+
         // for retrospective analysis, we clone the input stream.
-        match self.0.parse(input.clone()) {
-            Ok((t, input)) => Ok((Some(t), input)),
+        match self.0.parse(input) {
+            Ok(t) => Ok(Some(t)),
             Err(err) if err.control_flow() == ControlFlow::Fatal => Err(err),
-            Err(_) => Ok((None, input)),
+            Err(_) => {
+                *input = snapshot;
+                Ok(None)
+            }
         }
     }
 }
@@ -117,10 +122,8 @@ where
     type Error = P::Error;
 
     #[inline]
-    fn parse(self, input: I) -> Result<Self::Output, I, Self::Error> {
-        self.0
-            .parse(input)
-            .map(|(output, input)| ((self.1)(output), input))
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Error> {
+        self.0.parse(input).map(|output| (self.1)(output))
     }
 }
 struct Fatal<P>(P);
@@ -135,7 +138,7 @@ where
     type Error = P::Error;
 
     #[inline]
-    fn parse(self, input: I) -> Result<Self::Output, I, Self::Error> {
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Error> {
         match self.0.parse(input) {
             Err(err) => Err(err.into_fatal()),
             r => r,
@@ -157,9 +160,11 @@ where
     type Error = E;
 
     #[inline]
-    fn parse(self, input: I) -> Result<Self::Output, I, Self::Error> {
-        if let (Some(v), input) = self.0.ok().parse(input.clone())? {
-            return Ok((v, input));
+    fn parse(self, input: &mut I) -> Result<Self::Output, Self::Error> {
+        let mut try_input = input.clone();
+        if let Some(v) = self.0.ok().parse(&mut try_input)? {
+            *input = try_input;
+            return Ok(v);
         }
 
         self.1.parse(input)

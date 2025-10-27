@@ -45,12 +45,12 @@ pub fn derive_tuple_syntax(args: TokenStream) -> TokenStream {
                 E: ParseError<I>,
                 #(#types: Syntax<I,E>),*
             {
-                fn parse(input: I) -> Result<Self, I, E> {
+                fn parse(input: &mut I) -> std::result::Result<Self, E> {
                     #(
-                        let (#types,input) = #types::parse(input)?;
+                        let #types = #types::parse(input)?;
                     )*
 
-                    Ok(((#(#types),*),input))
+                    Ok((#(#types),*))
                 }
             }
         });
