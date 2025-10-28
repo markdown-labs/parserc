@@ -19,8 +19,6 @@ pub enum Kind {
     Next(Span),
     #[error("Error from `next_if` combinator")]
     NextIf(Span),
-    #[error("Error from `take_until` combinator")]
-    TakeUntil(Span),
     #[error("Error from `keyword` combinator")]
     Keyword(Span),
 }

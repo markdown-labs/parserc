@@ -49,7 +49,7 @@ where
 
 /// Recogonize a keyword
 #[inline]
-pub fn keyword<KW, I, E>(keyword: KW) -> impl Parser<I, Output = I>
+pub fn keyword<KW, I>(keyword: KW) -> impl Parser<I, Output = I>
 where
     I: Input + StartWith<KW> + Clone,
     KW: Debug + Clone,

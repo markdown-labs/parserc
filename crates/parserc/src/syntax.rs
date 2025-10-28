@@ -17,6 +17,8 @@ pub trait InputSyntaxExt: Input {
     }
 }
 
+impl<I> InputSyntaxExt for I where I: Input {}
+
 /// A syntax tree struct/enum should implment this trait
 pub trait Syntax<I>: Sized
 where
@@ -220,6 +222,9 @@ where
 
 // implement Syntax for tuple (T1,T2,...) where T1: Syntax, T2: Syntax, ...
 parserc_derive::derive_tuple_syntax!(16);
+
+pub use parserc_derive::Syntax;
+pub use parserc_derive::keyword;
 
 #[cfg(test)]
 mod tests {
