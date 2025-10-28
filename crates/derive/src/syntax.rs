@@ -1,9 +1,6 @@
 use proc_macro::TokenStream;
-use quote::{ToTokens, quote};
-use syn::{
-    Attribute, Error, Ident, Item, ItemEnum, ItemStruct, Path, Result, WhereClause, meta,
-    parse::Parser, parse_macro_input, spanned::Spanned, token::Token,
-};
+use quote::quote;
+use syn::{Error, Item, ItemEnum, ItemStruct, Result, parse_macro_input, spanned::Spanned};
 
 pub fn derive_syntax(input: TokenStream) -> TokenStream {
     let item = parse_macro_input!(input as Item);
