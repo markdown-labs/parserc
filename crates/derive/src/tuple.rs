@@ -45,6 +45,7 @@ pub fn derive_tuple_syntax(args: TokenStream) -> TokenStream {
                 I: Input,
                 #(#types: Syntax<I>),*
             {
+                #[inline]
                 fn parse(input: &mut I) -> std::result::Result<Self, I::Error> {
                     #(
                         let #types = #types::parse(input)?;

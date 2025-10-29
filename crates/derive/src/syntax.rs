@@ -139,12 +139,13 @@ fn derive_syntax_for_enum(item: ItemEnum) -> Result<proc_macro2::TokenStream> {
 
     Ok(quote! {
         impl #impl_generic parserc::syntax::Syntax<#ty_input> for #ident #type_generic #where_clause {
+            #[inline]
             fn parse(input: &mut #ty_input) -> Result<Self, <#ty_input as parserc::Input>::Error> {
                 use parserc::syntax::InputSyntaxExt;
                 use parserc::Parser;
                 #(#fields)*
 
-                Err((parserc::ControlFlow::Recovable,parserc::Kind::Syntax(#ident_str)).into())
+                Err((parserc::ControlFlow::Recovable,parserc::Kind::Syntax(#ident_str, input.to_span())).into())
             }
         }
     })
@@ -186,6 +187,7 @@ fn derive_syntax_for_struct(item: ItemStruct) -> Result<proc_macro2::TokenStream
 
     Ok(quote! {
         impl #impl_generic parserc::syntax::Syntax<#ty_input> for #ident #type_generic #where_clause {
+            #[inline]
             fn parse(input: &mut #ty_input) -> Result<Self, <#ty_input as parserc::Input>::Error> {
                 use parserc::syntax::InputSyntaxExt;
                 #parse

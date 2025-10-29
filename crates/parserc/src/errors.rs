@@ -22,7 +22,7 @@ pub enum Kind {
     #[error("Error from `keyword` combinator")]
     Keyword(Span),
     #[error("Error from parsing syntax `{0}`")]
-    Syntax(&'static str),
+    Syntax(&'static str, Span),
 }
 
 /// A error type returns by parser combinators.

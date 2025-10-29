@@ -50,13 +50,16 @@ pub fn derive_keyword(item: proc_macro::TokenStream) -> proc_macro::TokenStream 
 
     quote! {
         /// Keyword `#ident`
-        pub struct #ident<I>(I) where I: parserc::lang::LangInput;
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+        pub struct #ident<I>(I);
 
         impl<I> parserc::syntax::Syntax<I> for #ident<I>
         where
-            I: parserc::lang::LangInput,
+            I: parserc::Input + parserc::StartWith<&'static str> + std::clone::Clone,
         {
+            #[inline]
             fn parse(input: &mut I) -> Result<Self, I::Error> {
+                use parserc::Parser;
                 parserc::keyword(#value).parse(input).map(|input| Self(input))
             }
         }
