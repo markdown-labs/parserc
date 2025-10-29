@@ -145,7 +145,7 @@ fn derive_syntax_for_enum(item: ItemEnum) -> Result<proc_macro2::TokenStream> {
                 use parserc::Parser;
                 #(#fields)*
 
-                Err((parserc::ControlFlow::Recovable,parserc::Kind::Syntax(#ident_str, input.to_span())).into())
+                Err(parserc::Kind::Syntax(#ident_str,parserc::ControlFlow::Recovable,input.to_span()).into())
             }
         }
     })

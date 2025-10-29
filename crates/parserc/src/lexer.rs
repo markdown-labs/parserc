@@ -20,9 +20,9 @@ where
                 return Ok(input.split_to(item.len()));
             }
 
-            Err((ControlFlow::Recovable, Kind::Next(input.to_span())).into())
+            Err((Kind::Next(ControlFlow::Recovable, input.to_span())).into())
         } else {
-            Err((ControlFlow::Incomplete, Kind::Next(input.to_span())).into())
+            Err((Kind::Next(ControlFlow::Incomplete, input.to_span())).into())
         }
     }
 }
@@ -40,9 +40,9 @@ where
                 return Ok(input.split_to(next.len()));
             }
 
-            Err((ControlFlow::Recovable, Kind::NextIf(input.to_span())).into())
+            Err((Kind::NextIf(ControlFlow::Recovable, input.to_span())).into())
         } else {
-            Err((ControlFlow::Recovable, Kind::NextIf(input.to_span())).into())
+            Err((Kind::NextIf(ControlFlow::Incomplete, input.to_span())).into())
         }
     }
 }
@@ -58,7 +58,7 @@ where
         if let Some(len) = input.starts_with(keyword.clone()) {
             Ok(input.split_to(len))
         } else {
-            Err((ControlFlow::Recovable, Kind::Keyword(input.to_span())).into())
+            Err((Kind::Keyword(ControlFlow::Recovable, input.to_span())).into())
         }
     }
 }

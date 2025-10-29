@@ -51,7 +51,7 @@ pub fn derive_keyword(item: proc_macro::TokenStream) -> proc_macro::TokenStream 
     quote! {
         /// Keyword `#ident`
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-        pub struct #ident<I>(I);
+        pub struct #ident<I>(pub I);
 
         impl<I> parserc::syntax::Syntax<I> for #ident<I>
         where

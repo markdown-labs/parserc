@@ -1,5 +1,5 @@
 use parserc::{
-    ControlFlow, Input, Kind, ParseError, Parser,
+    Input, Kind, ParseError, Parser,
     lang::{LangInput, TokenStream},
     syntax::{Syntax, keyword},
     take_while,
@@ -9,8 +9,8 @@ use parserc::{
 #[derive(Clone, Debug)]
 struct MockError;
 
-impl From<(ControlFlow, Kind)> for MockError {
-    fn from(_: (ControlFlow, Kind)) -> Self {
+impl From<Kind> for MockError {
+    fn from(_: Kind) -> Self {
         Self
     }
 }
@@ -21,6 +21,10 @@ impl ParseError for MockError {
     }
 
     fn into_fatal(self) -> Self {
+        todo!()
+    }
+
+    fn span(&self) -> parserc::Span {
         todo!()
     }
 }

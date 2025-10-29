@@ -9,6 +9,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for
 compatibility with GitHub comment style markdown rendering.
 -->
 
+## [0.10.3] - 2025-10-29
+
+- Change `ParseError` api: add `span` function.
+
 ## [0.10.2] - 2025-10-29
 
 - Fixed some `derive` bugs.
