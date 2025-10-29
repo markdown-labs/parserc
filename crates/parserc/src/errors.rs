@@ -21,6 +21,8 @@ pub enum Kind {
     NextIf(Span),
     #[error("Error from `keyword` combinator")]
     Keyword(Span),
+    #[error("Error from parsing syntax `{0}`")]
+    Syntax(&'static str),
 }
 
 /// A error type returns by parser combinators.

@@ -54,6 +54,16 @@ struct _Iden3<'a> {
 keyword!(KeywordFn, "fn");
 keyword!(class);
 
+#[derive(Syntax)]
+#[syntax(input = I)]
+enum _Key<I>
+where
+    I: LangInput,
+{
+    Fn(KeywordFn<I>),
+    Class(Class<I>),
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
