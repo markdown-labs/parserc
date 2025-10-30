@@ -27,6 +27,8 @@ pub enum Kind {
     LimitsTo(ControlFlow, Span),
     #[error("Error from parsing syntax `Limits`")]
     Limits(ControlFlow, Span),
+    #[error("Error from parsing syntax `LimitsFrom`")]
+    LimitsFrom(ControlFlow, Span),
 }
 
 /// A error type returns by parser combinators.
@@ -49,6 +51,7 @@ impl ParseError for Kind {
             Kind::Syntax(_, control_flow, _) => *control_flow,
             Kind::LimitsTo(control_flow, _) => *control_flow,
             Kind::Limits(control_flow, _) => *control_flow,
+            Kind::LimitsFrom(control_flow, _) => *control_flow,
         }
     }
 
@@ -60,6 +63,7 @@ impl ParseError for Kind {
             Kind::Syntax(name, _, span) => Kind::Syntax(name, ControlFlow::Fatal, span),
             Kind::LimitsTo(_, span) => Kind::LimitsTo(ControlFlow::Fatal, span),
             Kind::Limits(_, span) => Kind::Limits(ControlFlow::Fatal, span),
+            Kind::LimitsFrom(_, span) => Kind::LimitsFrom(ControlFlow::Fatal, span),
         }
     }
 
@@ -71,6 +75,7 @@ impl ParseError for Kind {
             Kind::Syntax(_, _, span) => span.clone(),
             Kind::LimitsTo(_, span) => span.clone(),
             Kind::Limits(_, span) => span.clone(),
+            Kind::LimitsFrom(_, span) => span.clone(),
         }
     }
 }
