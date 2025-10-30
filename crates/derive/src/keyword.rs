@@ -51,6 +51,7 @@ pub fn derive_keyword(item: proc_macro::TokenStream) -> proc_macro::TokenStream 
     quote! {
         /// Keyword `#ident`
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         pub struct #ident<I>(pub I);
 
         impl<I> parserc::syntax::Syntax<I> for #ident<I>
@@ -61,6 +62,11 @@ pub fn derive_keyword(item: proc_macro::TokenStream) -> proc_macro::TokenStream 
             fn parse(input: &mut I) -> Result<Self, I::Error> {
                 use parserc::Parser;
                 parserc::keyword(#value).parse(input).map(|input| Self(input))
+            }
+
+            #[inline]
+            fn to_span(&self) -> parserc::Span {
+                self.0.to_span()
             }
         }
 

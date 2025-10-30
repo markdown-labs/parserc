@@ -53,6 +53,17 @@ pub fn derive_tuple_syntax(args: TokenStream) -> TokenStream {
 
                     Ok((#(#types),*))
                 }
+
+                #[inline]
+                fn to_span(&self) -> Span {
+                    let mut lhs = Span::None;
+
+                    #(
+                        let lhs = lhs.union(&#pos.to_span());
+                    )*
+
+                    lhs
+                }
             }
         });
     }

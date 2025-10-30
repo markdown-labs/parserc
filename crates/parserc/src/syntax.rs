@@ -2,6 +2,7 @@
 
 use std::{fmt::Debug, marker::PhantomData};
 
+use crate::Span;
 use crate::{input::Input, parser::Parser};
 
 /// An extension trait to help syntax struct parsing.
@@ -27,6 +28,8 @@ where
     /// Parse input data and construct a new `Syntax` instance.
     fn parse(input: &mut I) -> Result<Self, I::Error>;
 
+    fn to_span(&self) -> Span;
+
     /// Create a new `Parser` from this type.
     fn into_parser() -> impl Parser<I, Output = Self> {
         SyntaxParser(Default::default(), Default::default())
@@ -42,6 +45,7 @@ where
 {
     type Output = T;
 
+    #[inline]
     fn parse(self, input: &mut I) -> Result<Self::Output, I::Error> {
         T::parse(input)
     }
@@ -51,8 +55,14 @@ impl<T, I> Syntax<I> for PhantomData<T>
 where
     I: Input,
 {
+    #[inline]
     fn parse(_input: &mut I) -> Result<Self, I::Error> {
         Ok(Self::default())
+    }
+
+    #[inline]
+    fn to_span(&self) -> Span {
+        Span::None
     }
 }
 
@@ -61,8 +71,14 @@ where
     T: Syntax<I>,
     I: Input + Clone,
 {
+    #[inline]
     fn parse(input: &mut I) -> Result<Self, I::Error> {
         T::into_parser().ok().parse(input)
+    }
+
+    #[inline]
+    fn to_span(&self) -> Span {
+        self.as_ref().map_or(Span::None, |value| value.to_span())
     }
 }
 
@@ -73,6 +89,11 @@ where
 {
     fn parse(input: &mut I) -> Result<Self, I::Error> {
         T::into_parser().boxed().parse(input)
+    }
+
+    #[inline]
+    fn to_span(&self) -> Span {
+        self.as_ref().to_span()
     }
 }
 
@@ -94,6 +115,14 @@ where
         }
 
         Ok(elms)
+    }
+
+    #[inline]
+    fn to_span(&self) -> Span {
+        let first = self.first().map_or(Span::None, |v| v.to_span());
+        let last = self.last().map_or(Span::None, |v| v.to_span());
+
+        first.union(&last)
     }
 }
 
@@ -122,6 +151,14 @@ where
         let end = End::into_parser().fatal().parse(input)?;
 
         Ok(Self { start, body, end })
+    }
+
+    #[inline]
+    fn to_span(&self) -> Span {
+        let start = self.start.to_span();
+        let end = self.end.to_span();
+
+        start.union(&end)
     }
 }
 
@@ -163,6 +200,11 @@ where
             pairs.push((t, p));
         }
     }
+
+    #[inline]
+    fn to_span(&self) -> Span {
+        self.pairs.to_span().union(&self.tail.to_span())
+    }
 }
 
 /// When merging two abstract syntax trees,
@@ -189,6 +231,14 @@ where
         };
 
         Ok(Self::First(first))
+    }
+
+    #[inline]
+    fn to_span(&self) -> Span {
+        match self {
+            Or::First(v) => v.to_span(),
+            Or::Second(v) => v.to_span(),
+        }
     }
 }
 
@@ -239,6 +289,10 @@ mod tests {
     {
         fn parse(_input: &mut I) -> Result<Self, I::Error> {
             Ok(Mock)
+        }
+
+        fn to_span(&self) -> crate::Span {
+            todo!()
         }
     }
 }

@@ -40,6 +40,10 @@ where
 
         Ok(Self(ident))
     }
+
+    fn to_span(&self) -> parserc::Span {
+        self.0.to_span()
+    }
 }
 
 #[derive(Syntax)]

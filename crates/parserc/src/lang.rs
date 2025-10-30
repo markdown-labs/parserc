@@ -23,6 +23,7 @@ pub trait LangInput:
 
 /// `Input` for compute language parsing.
 #[derive(Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TokenStream<'a, E> {
     /// offset in the whole token stream.
     pub offset: usize,
