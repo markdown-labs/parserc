@@ -9,6 +9,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for
 compatibility with GitHub comment style markdown rendering.
 -->
 
+## [0.10.5] - 2025-10-30
+
+- derive: add `token!` proc-macro.
+
 ## [0.10.4] - 2025-10-30
 
 - syntax: add `Limits*` syntax nodes.

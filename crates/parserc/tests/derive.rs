@@ -4,9 +4,10 @@ use parserc::{
     syntax::{Syntax, keyword},
     take_while,
 };
+use parserc_derive::token;
 
 #[allow(unused)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 struct MockError;
 
 impl From<Kind> for MockError {
@@ -85,5 +86,17 @@ mod tests {
         KeywordFn::parse(&mut input).unwrap();
         let mut input: TokenStream<'_, MockError> = TokenStream::from("class");
         Class::parse(&mut input).unwrap();
+    }
+
+    #[test]
+    fn test_token() {
+        token!(Variable, |c: u8| { c.is_ascii_alphabetic() });
+
+        let mut input: TokenStream<'_, MockError> = TokenStream::from("fn");
+
+        assert_eq!(
+            Variable::parse(&mut input),
+            Ok(Variable(TokenStream::from("fn")))
+        );
     }
 }
