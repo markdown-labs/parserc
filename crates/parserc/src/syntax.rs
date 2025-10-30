@@ -2,7 +2,7 @@
 
 use std::{fmt::Debug, marker::PhantomData};
 
-use crate::Span;
+use crate::{ControlFlow, Kind, Span};
 use crate::{input::Input, parser::Parser};
 
 /// An extension trait to help syntax struct parsing.
@@ -159,6 +159,82 @@ where
         let end = self.end.to_span();
 
         start.union(&end)
+    }
+}
+
+/// Limits the child `syntax` length.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct LimitsTo<T, const N: usize>(pub T);
+
+impl<I, T, const N: usize> Syntax<I> for LimitsTo<T, N>
+where
+    I: Input + Clone,
+    T: Syntax<I>,
+{
+    fn parse(input: &mut I) -> Result<Self, <I as Input>::Error> {
+        let start = input.to_span();
+
+        let t = T::parse(input)?;
+
+        let span = t.to_span();
+
+        let len = match span {
+            sourcespan::Span::None => 0,
+            sourcespan::Span::Range(range) => range.len(),
+            sourcespan::Span::RangeTo(range_to) => range_to.end,
+            _ => {
+                return Err(Kind::LimitsTo(ControlFlow::Recovable, start).into());
+            }
+        };
+
+        if len > N {
+            return Err(Kind::LimitsTo(ControlFlow::Recovable, start).into());
+        }
+
+        Ok(Self(t))
+    }
+
+    fn to_span(&self) -> Span {
+        self.0.to_span()
+    }
+}
+
+/// Limits the child `syntax` length between `lower` and `higher`.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Limits<T, const LOWER: usize, const HIGHER: usize>(pub T);
+
+impl<I, T, const LOWER: usize, const HIGHER: usize> Syntax<I> for Limits<T, LOWER, HIGHER>
+where
+    I: Input + Clone,
+    T: Syntax<I>,
+{
+    fn parse(input: &mut I) -> Result<Self, <I as Input>::Error> {
+        let start = input.to_span();
+
+        let t = T::parse(input)?;
+
+        let span = t.to_span();
+
+        let len = match span {
+            sourcespan::Span::None => 0,
+            sourcespan::Span::Range(range) => range.len(),
+            sourcespan::Span::RangeTo(range_to) => range_to.end,
+            _ => {
+                return Err(Kind::Limits(ControlFlow::Recovable, start).into());
+            }
+        };
+
+        if len < LOWER || !(len < HIGHER) {
+            return Err(Kind::Limits(ControlFlow::Recovable, start).into());
+        }
+
+        Ok(Self(t))
+    }
+
+    fn to_span(&self) -> Span {
+        self.0.to_span()
     }
 }
 
