@@ -3,6 +3,7 @@
 use std::fmt::Debug;
 
 use crate::{
+    Span,
     errors::{ControlFlow, Kind},
     input::{Find, Input, Item, StartWith},
     parser::Parser,
@@ -10,7 +11,7 @@ use crate::{
 
 /// A parser match next item, otherwise raise an error.
 #[inline]
-pub fn next<I, E>(item: I::Item) -> impl Parser<I, Output = I>
+pub fn next<I>(item: I::Item) -> impl Parser<I, Output = I>
 where
     I: Input + Clone,
 {
@@ -20,9 +21,13 @@ where
                 return Ok(input.split_to(item.len()));
             }
 
-            Err((Kind::Next(ControlFlow::Recovable, input.to_span())).into())
+            Err((Kind::Next(
+                ControlFlow::Recovable,
+                Span::Range(input.start()..input.start() + 1),
+            ))
+            .into())
         } else {
-            Err((Kind::Next(ControlFlow::Incomplete, input.to_span())).into())
+            Err((Kind::Next(ControlFlow::Incomplete, Span::RangeFrom(input.start()..))).into())
         }
     }
 }

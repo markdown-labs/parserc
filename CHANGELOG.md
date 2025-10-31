@@ -9,6 +9,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for
 compatibility with GitHub comment style markdown rendering.
 -->
 
+## [0.10.6] - 2025-11-01
+
+- fixed compile bug: remove unnecessary `E` generic parameter.
+
 ## [0.10.5] - 2025-10-30
 
 - derive: add `token!` proc-macro.
