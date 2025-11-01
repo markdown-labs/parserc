@@ -277,7 +277,7 @@ where
 }
 
 /// A punctuated sequence of syntax tree nodes of type T separated by punctuation of type P.
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Punctuated<T, P> {
     /// (T,P) pairs

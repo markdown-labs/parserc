@@ -9,6 +9,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for
 compatibility with GitHub comment style markdown rendering.
 -->
 
+## [0.10.7] - 2025-11-01
+
+- fixed derive `token!` bug.
+
 ## [0.10.6] - 2025-11-01
 
 - fixed compile bug: remove unnecessary `E` generic parameter.

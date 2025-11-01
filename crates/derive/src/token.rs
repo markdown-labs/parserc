@@ -27,6 +27,8 @@ pub fn derive_token(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
         value,
     } = parse_macro_input!(item as Keyword);
 
+    let ident_name = ident.to_string();
+
     if value.inputs.len() != 1 {
         return Error::new(
             value.inputs.span(),
@@ -62,7 +64,13 @@ pub fn derive_token(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
             #[inline]
             fn parse(input: &mut I) -> Result<Self, I::Error> {
                 use parserc::Parser;
-                parserc::take_while(#value).parse(input).map(|input| Self(input))
+                let content = parserc::take_while(#value).parse(input)?;
+
+                if content.len() == 0 {
+                    return Err(parserc::Kind::Token(#ident_name, parserc::ControlFlow::Recovable, content.to_span()).into());
+                }
+
+                Ok(Self(content))
             }
 
             #[inline]

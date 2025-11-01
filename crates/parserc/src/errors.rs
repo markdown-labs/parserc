@@ -23,6 +23,8 @@ pub enum Kind {
     Keyword(ControlFlow, Span),
     #[error("Error from parsing syntax `{0}`")]
     Syntax(&'static str, ControlFlow, Span),
+    #[error("Error from parsing token `{0}`")]
+    Token(&'static str, ControlFlow, Span),
     #[error("Error from parsing syntax `LimitsTo`")]
     LimitsTo(ControlFlow, Span),
     #[error("Error from parsing syntax `Limits`")]
@@ -52,6 +54,7 @@ impl ParseError for Kind {
             Kind::LimitsTo(control_flow, _) => *control_flow,
             Kind::Limits(control_flow, _) => *control_flow,
             Kind::LimitsFrom(control_flow, _) => *control_flow,
+            Kind::Token(_, control_flow, _) => *control_flow,
         }
     }
 
@@ -61,6 +64,7 @@ impl ParseError for Kind {
             Kind::NextIf(_, span) => Kind::NextIf(ControlFlow::Fatal, span),
             Kind::Keyword(_, span) => Kind::Keyword(ControlFlow::Fatal, span),
             Kind::Syntax(name, _, span) => Kind::Syntax(name, ControlFlow::Fatal, span),
+            Kind::Token(name, _, span) => Kind::Token(name, ControlFlow::Fatal, span),
             Kind::LimitsTo(_, span) => Kind::LimitsTo(ControlFlow::Fatal, span),
             Kind::Limits(_, span) => Kind::Limits(ControlFlow::Fatal, span),
             Kind::LimitsFrom(_, span) => Kind::LimitsFrom(ControlFlow::Fatal, span),
@@ -73,6 +77,7 @@ impl ParseError for Kind {
             Kind::NextIf(_, span) => span.clone(),
             Kind::Keyword(_, span) => span.clone(),
             Kind::Syntax(_, _, span) => span.clone(),
+            Kind::Token(_, _, span) => span.clone(),
             Kind::LimitsTo(_, span) => span.clone(),
             Kind::Limits(_, span) => span.clone(),
             Kind::LimitsFrom(_, span) => span.clone(),
