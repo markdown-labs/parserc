@@ -1,9 +1,9 @@
 //! Parser combinators for tokenizer/lexer.
 
-use std::fmt::Debug;
+use std::{cmp::min, fmt::Debug};
 
 use crate::{
-    Span,
+    Length, Span,
     errors::{ControlFlow, Kind},
     input::{Find, Input, Item, StartWith},
     parser::Parser,
@@ -57,13 +57,17 @@ where
 pub fn keyword<KW, I>(keyword: KW) -> impl Parser<I, Output = I>
 where
     I: Input + StartWith<KW> + Clone,
-    KW: Debug + Clone,
+    KW: Debug + Clone + Length,
 {
     move |input: &mut I| {
         if let Some(len) = input.starts_with(keyword.clone()) {
             Ok(input.split_to(len))
         } else {
-            Err((Kind::Keyword(ControlFlow::Recovable, input.to_span())).into())
+            Err((Kind::Keyword(
+                ControlFlow::Recovable,
+                Span::Range(input.start()..min(input.start() + keyword.len(), input.end())),
+            ))
+            .into())
         }
     }
 }

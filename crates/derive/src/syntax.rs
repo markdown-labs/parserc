@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    Attribute, Error, Fields, Item, ItemEnum, ItemStruct, Result, Type, parse::Parser,
+    Attribute, Error, Expr, Fields, Item, ItemEnum, ItemStruct, Result, Type, parse::Parser,
     parse_macro_input, spanned::Spanned,
 };
 
@@ -29,12 +29,14 @@ pub fn derive_syntax(input: TokenStream) -> TokenStream {
 
 struct Syntax {
     ty_input: Type,
+    map_err: Option<Expr>,
 }
 
 impl Default for Syntax {
     fn default() -> Self {
         Self {
             ty_input: syn::parse2(quote! { I }).unwrap(),
+            map_err: None,
         }
     }
 }
@@ -53,6 +55,7 @@ fn parse_syntax_options(attrs: &[Attribute]) -> Result<Syntax> {
     };
 
     let mut ty_input: Option<Type> = None;
+    let mut map_err: Option<Expr> = None;
 
     let parser = syn::meta::parser(|meta| {
         macro_rules! error {
@@ -67,6 +70,8 @@ fn parse_syntax_options(attrs: &[Attribute]) -> Result<Syntax> {
 
         if ident == "input" {
             ty_input = Some(meta.value()?.parse()?);
+        } else if ident == "map_err" {
+            map_err = Some(meta.value()?.parse()?);
         } else {
             error!("Unsupport macro `syntax` option `{}`.", ident);
         }
@@ -77,17 +82,28 @@ fn parse_syntax_options(attrs: &[Attribute]) -> Result<Syntax> {
     parser.parse2(meta_list.tokens.to_token_stream())?;
 
     if let Some(ty_input) = ty_input {
-        Ok(Syntax { ty_input })
+        Ok(Syntax { ty_input, map_err })
     } else {
-        Ok(Default::default())
+        Ok(Syntax {
+            map_err,
+            ..Default::default()
+        })
     }
 }
 
 fn derive_syntax_for_enum(item: ItemEnum) -> Result<proc_macro2::TokenStream> {
-    let Syntax { ty_input } = parse_syntax_options(&item.attrs)?;
+    let Syntax { ty_input, map_err } = parse_syntax_options(&item.attrs)?;
 
     let ident = &item.ident;
     let ident_str = ident.to_string();
+
+    let map_err = if let Some(map_err) = map_err {
+        quote! {
+            .map_err(#map_err)
+        }
+    } else {
+        quote! {}
+    };
 
     let (impl_generic, type_generic, where_clause) = item.generics.split_for_impl();
 
@@ -103,11 +119,11 @@ fn derive_syntax_for_enum(item: ItemEnum) -> Result<proc_macro2::TokenStream> {
                 .map(|member| match member {
                     syn::Member::Named(ident) => {
                         quote! {
-                            #ident: input.parse()?
+                            #ident: input.parse()#map_err?
                         }
                     }
                     syn::Member::Unnamed(_) => {
-                        quote! {input.parse()?}
+                        quote! {input.parse()#map_err?}
                     }
                 })
                 .collect::<Vec<_>>();
@@ -205,9 +221,17 @@ fn derive_syntax_for_enum(item: ItemEnum) -> Result<proc_macro2::TokenStream> {
 }
 
 fn derive_syntax_for_struct(item: ItemStruct) -> Result<proc_macro2::TokenStream> {
-    let Syntax { ty_input } = parse_syntax_options(&item.attrs)?;
+    let Syntax { ty_input, map_err } = parse_syntax_options(&item.attrs)?;
 
     let ident = &item.ident;
+
+    let map_err = if let Some(map_err) = map_err {
+        quote! {
+            .map_err(#map_err)
+        }
+    } else {
+        quote! {}
+    };
 
     let (impl_generic, type_generic, where_clause) = item.generics.split_for_impl();
 
@@ -217,11 +241,11 @@ fn derive_syntax_for_struct(item: ItemStruct) -> Result<proc_macro2::TokenStream
         .map(|member| match member {
             syn::Member::Named(ident) => {
                 quote! {
-                    #ident: input.parse()?
+                    #ident: input.parse()#map_err?
                 }
             }
             syn::Member::Unnamed(_) => {
-                quote! {input.parse()?}
+                quote! {input.parse()#map_err?}
             }
         })
         .collect::<Vec<_>>();

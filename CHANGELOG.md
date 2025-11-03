@@ -9,6 +9,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for
 compatibility with GitHub comment style markdown rendering.
 -->
 
+## [0.10.8] - 2025-11-03
+
+- derive `syntax` add option `map_err`.
+
 ## [0.10.7] - 2025-11-01
 
 - fixed derive `token!` bug.

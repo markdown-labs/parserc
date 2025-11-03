@@ -20,6 +20,24 @@ pub trait AsBytes {
     fn as_bytes(&self) -> &[u8];
 }
 
+/// A trait to fetch item length.
+pub trait Length {
+    /// Returns item length.
+    fn len(&self) -> usize;
+}
+
+impl Length for &str {
+    fn len(&self) -> usize {
+        str::len(self)
+    }
+}
+
+impl Length for &[u8] {
+    fn len(&self) -> usize {
+        <[u8]>::len(self)
+    }
+}
+
 /// Convert `Input` as `&str`
 pub trait AsStr {
     /// Convert the input type to a str slice

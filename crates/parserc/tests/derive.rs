@@ -48,7 +48,7 @@ where
 }
 
 #[derive(Syntax)]
-#[syntax(input = I)]
+#[syntax(input = I, map_err = |err| err)]
 struct _Ident2<I>(_Ident<I>)
 where
     I: LangInput;
