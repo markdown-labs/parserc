@@ -127,7 +127,7 @@ where
 }
 
 /// A short syntax for grouping token that surrounds a syntax body.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Delimiter<Start, End, Body> {
     /// Syntax start token.

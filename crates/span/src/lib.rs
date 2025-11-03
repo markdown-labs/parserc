@@ -3,7 +3,7 @@
 
 use std::{
     cmp,
-    ops::{Range, RangeFrom, RangeFull, RangeTo},
+    ops::{self, Range, RangeFrom, RangeFull, RangeTo},
 };
 
 /// A region of source code.
@@ -194,6 +194,17 @@ where
             (Span::RangeFull, Span::RangeTo(_)) => Span::RangeFull,
             (Span::RangeFull, Span::RangeFull) => Span::RangeFull,
         }
+    }
+}
+
+impl<Idx> ops::Add for Span<Idx>
+where
+    Idx: Ord + Copy,
+{
+    type Output = Span<Idx>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        self.union(&rhs)
     }
 }
 

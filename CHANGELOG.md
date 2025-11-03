@@ -9,6 +9,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for
 compatibility with GitHub comment style markdown rendering.
 -->
 
+## [0.10.9] - 2025-11-03
+
+- `span`: implement `ops::Add` for `Span` type.
+
 ## [0.10.8] - 2025-11-03
 
 - derive `syntax` add option `map_err`.
