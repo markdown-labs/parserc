@@ -85,7 +85,11 @@ where
         if let Some(offset) = input.find(keyword.clone()) {
             Ok(input.split_to(offset))
         } else {
-            Ok(input.split_to(0))
+            Err(Kind::TakeUntil(
+                ControlFlow::Recovable,
+                Span::Range(input.start()..input.start()),
+            )
+            .into())
         }
     }
 }
