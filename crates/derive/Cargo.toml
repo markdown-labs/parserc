@@ -4,7 +4,7 @@ documentation = "https://docs.rs/parserc-derive"
 edition = "2024"
 license = "MIT"
 name = "parserc-derive"
-repository = "https://github.com/markdown-labs/parserc/crates/derive"
+repository = "https://github.com/stylang/parserc/crates/derive"
 version.workspace = true
 
 

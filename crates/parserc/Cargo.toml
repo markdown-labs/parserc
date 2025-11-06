@@ -4,7 +4,7 @@ documentation = "https://docs.rs/parserc"
 edition = "2024"
 license = "MIT"
 name = "parserc"
-repository = "https://github.com/markdown-labs/parserc"
+repository = "https://github.com/stylang/parserc"
 version.workspace = true
 
 

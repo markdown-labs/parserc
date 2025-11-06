@@ -4,7 +4,7 @@ documentation = "https://docs.rs/sourcespan"
 edition = "2024"
 license = "MIT"
 name = "sourcespan"
-repository = "https://github.com/markdown-labs/parserc/crates/span"
+repository = "https://github.com/stylang/parserc/crates/span"
 version.workspace = true
 
 [dependencies]

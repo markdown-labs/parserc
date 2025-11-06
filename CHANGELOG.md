@@ -9,6 +9,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for
 compatibility with GitHub comment style markdown rendering.
 -->
 
+## [0.10.11] - 2025-11-06
+
+- transfer ownership to `stylang` organization.
+
 ## [0.10.10] - 2025-11-04
 
 - `take_until`: Returns error if pattern is not found.
