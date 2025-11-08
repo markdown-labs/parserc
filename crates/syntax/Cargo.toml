@@ -1,9 +1,9 @@
 [package]
 description = "A DSL for specifying concrete syntax trees."
-documentation = "https://docs.rs/syntax"
+documentation = "https://docs.rs/unsyn"
 edition = "2024"
 license = "MIT"
-name = "syntax"
+name = "unsyn"
 repository = "https://github.com/stylang/parserc/crates/syntax"
 version.workspace = true
 
