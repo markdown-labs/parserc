@@ -1,0 +1,10 @@
+[package]
+description = "A DSL for specifying concrete syntax trees."
+documentation = "https://docs.rs/syntax"
+edition = "2024"
+license = "MIT"
+name = "syntax"
+repository = "https://github.com/stylang/parserc/crates/syntax"
+version.workspace = true
+
+[dependencies]
