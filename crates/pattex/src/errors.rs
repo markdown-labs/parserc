@@ -19,6 +19,8 @@ pub enum PatternKind {
     HexEscape,
     #[error("Unicode escape")]
     UnicodeEscape,
+    #[error("character class")]
+    CharClass,
 }
 
 impl PatternKind {

@@ -3,7 +3,7 @@
 use parserc::{
     ControlFlow, ParseError, Parser, Span, next,
     syntax::{InputSyntaxExt, Syntax},
-    take_while, take_while_n_to_m,
+    take_while, take_while_range,
 };
 
 use crate::{
@@ -162,7 +162,7 @@ where
 /// Identities escape seqence.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Escaped<I>
+pub enum Escape<I>
 where
     I: PatternInput,
 {
@@ -192,6 +192,8 @@ where
     Word(I),
     /// `\W` equals to [^A-Za-z0-9_]
     NonWord(I),
+    /// `\.`
+    Dot(I),
     /// hex escape, `\xnn`
     X { prefix: I, num: I },
     /// `\num`
@@ -205,7 +207,7 @@ where
     },
 }
 
-impl<I> Syntax<I> for Escaped<I>
+impl<I> Syntax<I> for Escape<I>
 where
     I: PatternInput,
 {
@@ -272,6 +274,11 @@ where
 
                 Ok(Self::T(prefix))
             }
+            Some('.') => {
+                *input = prefix.split_off(2);
+
+                Ok(Self::Dot(prefix))
+            }
             Some('v') => {
                 *input = prefix.split_off(2);
 
@@ -290,7 +297,7 @@ where
             Some('x') => {
                 input.split_to(1);
 
-                let nn = take_while_n_to_m(2..2, |c: char| c.is_ascii_hexdigit())
+                let nn = take_while_range(2..2, |c: char| c.is_ascii_hexdigit())
                     .parse(input)
                     .map_err(PatternKind::HexEscape.map_fatal())?;
 
@@ -348,28 +355,103 @@ where
     #[inline]
     fn to_span(&self) -> Span {
         match self {
-            Escaped::Boundary(input) => input.to_span(),
-            Escaped::NonBoundary(input) => input.to_span(),
-            Escaped::Digit(input) => input.to_span(),
-            Escaped::NonDigit(input) => input.to_span(),
-            Escaped::PF(input) => input.to_span(),
-            Escaped::LF(input) => input.to_span(),
-            Escaped::CR(input) => input.to_span(),
-            Escaped::S(input) => input.to_span(),
-            Escaped::NonS(input) => input.to_span(),
-            Escaped::T(input) => input.to_span(),
-            Escaped::V(input) => input.to_span(),
-            Escaped::Word(input) => input.to_span(),
-            Escaped::NonWord(input) => input.to_span(),
-            Escaped::BackReference(input) => input.to_span(),
-            Escaped::X { prefix, num } => prefix.to_span() + num.to_span(),
-            Escaped::Unicode {
+            Escape::Boundary(input) => input.to_span(),
+            Escape::NonBoundary(input) => input.to_span(),
+            Escape::Digit(input) => input.to_span(),
+            Escape::NonDigit(input) => input.to_span(),
+            Escape::PF(input) => input.to_span(),
+            Escape::LF(input) => input.to_span(),
+            Escape::CR(input) => input.to_span(),
+            Escape::S(input) => input.to_span(),
+            Escape::NonS(input) => input.to_span(),
+            Escape::T(input) => input.to_span(),
+            Escape::V(input) => input.to_span(),
+            Escape::Word(input) => input.to_span(),
+            Escape::NonWord(input) => input.to_span(),
+            Escape::BackReference(input) => input.to_span(),
+            Escape::X { prefix, num } => prefix.to_span() + num.to_span(),
+            Escape::Unicode {
                 prefix,
                 delimiter_start: _,
                 num: _,
                 delimiter_end,
             } => prefix.to_span() + delimiter_end.to_span(),
+            Escape::Dot(input) => input.to_span(),
         }
+    }
+}
+
+/// Characters in class.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Char<I>
+where
+    I: PatternInput,
+{
+    // literial unicode char
+    C {
+        value: char,
+        input: I,
+    },
+    /// Unicode char range.
+    Range {
+        start: char,
+        end: char,
+        input: I,
+    },
+    /// escape character seqence.
+    Escape(Escape<I>),
+}
+
+/// character class
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct CharClass<I>
+where
+    I: PatternInput,
+{
+    /// delimiter start char `[`
+    pub delimiter_start: I,
+    /// negated char `^`
+    pub negated: Option<I>,
+    /// characters of the class.
+    pub chars: Vec<Char<I>>,
+    /// delimiter end char `]`
+    pub delimiter_end: I,
+}
+
+impl<I> Syntax<I> for CharClass<I>
+where
+    I: PatternInput,
+{
+    #[inline]
+    fn parse(_input: &mut I) -> Result<Self, <I as parserc::Input>::Error> {
+        // let delimiter_start = next('[')
+        //     .parse(input)
+        //     .map_err(PatternKind::CharClass.map())?;
+
+        // let negated = next('^')
+        //     .ok()
+        //     .parse(input)
+        //     .map_err(PatternKind::CharClass.map())?;
+
+        // let delimiter_end = next(']')
+        //     .parse(input)
+        //     .map_err(PatternKind::CharClass.map_fatal())?;
+
+        todo!()
+
+        // Ok(Self {
+        //     delimiter_start,
+        //     negated,
+        //     delimiter_end,
+        //     chars: todo!(),
+        // })
+    }
+
+    #[inline]
+    fn to_span(&self) -> Span {
+        self.delimiter_start.to_span() + self.delimiter_end.to_span()
     }
 }
 
@@ -380,7 +462,7 @@ mod tests {
     use crate::{
         errors::{PatternKind, RegexError},
         input::TokenStream,
-        pattern::{Digits, Escaped, Repeat},
+        pattern::{Digits, Escape, Repeat},
     };
 
     #[test]
@@ -454,7 +536,7 @@ mod tests {
     fn test_escape() {
         assert_eq!(
             TokenStream::from(r"\u{00A9}").parse(),
-            Ok(Escaped::Unicode {
+            Ok(Escape::Unicode {
                 prefix: TokenStream::from(r"\u"),
                 delimiter_start: TokenStream::from((2, "{")),
                 num: TokenStream::from((3, "00A9")),
@@ -464,19 +546,19 @@ mod tests {
 
         assert_eq!(
             TokenStream::from(r"\4").parse(),
-            Ok(Escaped::BackReference(TokenStream::from(r"\4")))
+            Ok(Escape::BackReference(TokenStream::from(r"\4")))
         );
 
         assert_eq!(
             TokenStream::from(r"\x04a").parse(),
-            Ok(Escaped::X {
+            Ok(Escape::X {
                 prefix: TokenStream::from(r"\x"),
                 num: TokenStream::from((2, "04"))
             })
         );
 
         assert_eq!(
-            TokenStream::from(r"\x4h").parse::<Escaped<_>>(),
+            TokenStream::from(r"\x4h").parse::<Escape<_>>(),
             Err(RegexError::Pattern(
                 PatternKind::HexEscape,
                 ControlFlow::Fatal,
@@ -486,67 +568,85 @@ mod tests {
 
         assert_eq!(
             TokenStream::from(r"\W+").parse(),
-            Ok(Escaped::NonWord(TokenStream::from(r"\W")))
+            Ok(Escape::NonWord(TokenStream::from(r"\W")))
         );
 
         assert_eq!(
             TokenStream::from(r"\w*").parse(),
-            Ok(Escaped::Word(TokenStream::from(r"\w")))
+            Ok(Escape::Word(TokenStream::from(r"\w")))
         );
 
         assert_eq!(
             TokenStream::from(r"\v*").parse(),
-            Ok(Escaped::V(TokenStream::from(r"\v")))
+            Ok(Escape::V(TokenStream::from(r"\v")))
         );
 
         assert_eq!(
             TokenStream::from(r"\t*").parse(),
-            Ok(Escaped::T(TokenStream::from(r"\t")))
+            Ok(Escape::T(TokenStream::from(r"\t")))
         );
 
         assert_eq!(
             TokenStream::from(r"\S").parse(),
-            Ok(Escaped::NonS(TokenStream::from(r"\S")))
+            Ok(Escape::NonS(TokenStream::from(r"\S")))
         );
 
         assert_eq!(
             TokenStream::from(r"\s").parse(),
-            Ok(Escaped::S(TokenStream::from(r"\s")))
+            Ok(Escape::S(TokenStream::from(r"\s")))
         );
 
         assert_eq!(
             TokenStream::from(r"\n").parse(),
-            Ok(Escaped::LF(TokenStream::from(r"\n")))
+            Ok(Escape::LF(TokenStream::from(r"\n")))
         );
 
         assert_eq!(
             TokenStream::from(r"\r").parse(),
-            Ok(Escaped::CR(TokenStream::from(r"\r")))
+            Ok(Escape::CR(TokenStream::from(r"\r")))
         );
 
         assert_eq!(
             TokenStream::from(r"\f").parse(),
-            Ok(Escaped::PF(TokenStream::from(r"\f")))
+            Ok(Escape::PF(TokenStream::from(r"\f")))
         );
 
         assert_eq!(
             TokenStream::from(r"\D").parse(),
-            Ok(Escaped::NonDigit(TokenStream::from(r"\D")))
+            Ok(Escape::NonDigit(TokenStream::from(r"\D")))
         );
 
         assert_eq!(
             TokenStream::from(r"\d").parse(),
-            Ok(Escaped::Digit(TokenStream::from(r"\d")))
+            Ok(Escape::Digit(TokenStream::from(r"\d")))
         );
 
         assert_eq!(
             TokenStream::from(r"\B").parse(),
-            Ok(Escaped::NonBoundary(TokenStream::from(r"\B")))
+            Ok(Escape::NonBoundary(TokenStream::from(r"\B")))
         );
 
         assert_eq!(
             TokenStream::from(r"\b").parse(),
-            Ok(Escaped::Boundary(TokenStream::from(r"\b")))
+            Ok(Escape::Boundary(TokenStream::from(r"\b")))
+        );
+
+        assert_eq!(
+            TokenStream::from(r"\..").parse(),
+            Ok(Escape::Dot(TokenStream::from(r"\.")))
         );
     }
+
+    // #[test]
+    // fn test_char_class() {
+    //     assert_eq!(
+    //         TokenStream::from("[^A-Z0-9]").parse(),
+    //         Ok(CharClass {
+    //             delimiter_start: todo!(),
+    //             negated: todo!(),
+    //             chars: todo!(),
+    //             delimiter_end: todo!()
+    //         })
+    //     );
+    // }
 }

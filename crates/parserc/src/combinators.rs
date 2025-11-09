@@ -126,7 +126,7 @@ where
 ///
 /// This parser will never returns an error.
 #[inline]
-pub fn take_while_n<I, F>(n: usize, mut cond: F) -> impl Parser<I, Output = I>
+pub fn take_while_range_to<I, F>(n: usize, mut cond: F) -> impl Parser<I, Output = I>
 where
     I: Input,
     F: FnMut(I::Item) -> bool,
@@ -150,11 +150,47 @@ where
     }
 }
 
+/// Returns the longest input slice of at least length `n` (if any) that the predicate `F` returns true.
+///
+/// This parser will never returns an error.
+#[inline]
+pub fn take_while_range_from<I, F>(n: usize, mut cond: F) -> impl Parser<I, Output = I>
+where
+    I: Input,
+    F: FnMut(I::Item) -> bool,
+{
+    move |input: &mut I| {
+        let mut iter = input.iter();
+        let mut offset = 0;
+        loop {
+            if let Some(next) = iter.next() {
+                if !(cond)(next) {
+                    break;
+                }
+
+                offset += next.len();
+            } else {
+                break;
+            }
+        }
+
+        if offset < n {
+            return Err(Kind::TakeWhileFrom(
+                ControlFlow::Recovable,
+                Span::Range(input.start()..input.start() + offset),
+            )
+            .into());
+        }
+
+        Ok(input.split_to(offset))
+    }
+}
+
 /// Returns the longest input slice of length `n` (if any) that the predicate `F` returns true.
 ///
 /// This parser will never returns an error.
 #[inline]
-pub fn take_while_n_to_m<I, F>(range: Range<usize>, mut cond: F) -> impl Parser<I, Output = I>
+pub fn take_while_range<I, F>(range: Range<usize>, mut cond: F) -> impl Parser<I, Output = I>
 where
     I: Input,
     F: FnMut(I::Item) -> bool,
