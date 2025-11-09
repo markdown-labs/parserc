@@ -33,6 +33,8 @@ pub enum Kind {
     LimitsFrom(ControlFlow, Span),
     #[error("Error from `take_until`")]
     TakeUntil(ControlFlow, Span),
+    #[error("Error from `take_while_range`")]
+    TakeWhileRange(ControlFlow, Span),
 }
 
 /// A error type returns by parser combinators.
@@ -58,6 +60,7 @@ impl ParseError for Kind {
             Kind::LimitsFrom(control_flow, _) => *control_flow,
             Kind::TakeUntil(control_flow, _) => *control_flow,
             Kind::Token(_, control_flow, _) => *control_flow,
+            Kind::TakeWhileRange(control_flow, _) => *control_flow,
         }
     }
 
@@ -67,6 +70,7 @@ impl ParseError for Kind {
             Kind::NextIf(_, span) => Kind::NextIf(ControlFlow::Fatal, span),
             Kind::Keyword(_, span) => Kind::Keyword(ControlFlow::Fatal, span),
             Kind::TakeUntil(_, span) => Kind::TakeUntil(ControlFlow::Fatal, span),
+            Kind::TakeWhileRange(_, span) => Kind::TakeWhileRange(ControlFlow::Fatal, span),
             Kind::Syntax(name, _, span) => Kind::Syntax(name, ControlFlow::Fatal, span),
             Kind::Token(name, _, span) => Kind::Token(name, ControlFlow::Fatal, span),
             Kind::LimitsTo(_, span) => Kind::LimitsTo(ControlFlow::Fatal, span),
@@ -85,6 +89,7 @@ impl ParseError for Kind {
             Kind::LimitsTo(_, span) => span.clone(),
             Kind::Limits(_, span) => span.clone(),
             Kind::TakeUntil(_, span) => span.clone(),
+            Kind::TakeWhileRange(_, span) => span.clone(),
             Kind::LimitsFrom(_, span) => span.clone(),
         }
     }

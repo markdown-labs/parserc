@@ -1,6 +1,6 @@
 //! Parser combinators for tokenizer/lexer.
 
-use std::{cmp::min, fmt::Debug};
+use std::{cmp::min, fmt::Debug, ops::Range};
 
 use crate::{
     Length, Span,
@@ -116,6 +116,70 @@ where
             } else {
                 break;
             }
+        }
+
+        Ok(input.split_to(offset))
+    }
+}
+
+/// Returns the longest input slice of length `n` (if any) that the predicate `F` returns true.
+///
+/// This parser will never returns an error.
+#[inline]
+pub fn take_while_n<I, F>(n: usize, mut cond: F) -> impl Parser<I, Output = I>
+where
+    I: Input,
+    F: FnMut(I::Item) -> bool,
+{
+    move |input: &mut I| {
+        let mut iter = input.iter();
+        let mut offset = 0;
+        while offset < n {
+            if let Some(next) = iter.next() {
+                if !(cond)(next) {
+                    break;
+                }
+
+                offset += next.len();
+            } else {
+                break;
+            }
+        }
+
+        Ok(input.split_to(offset))
+    }
+}
+
+/// Returns the longest input slice of length `n` (if any) that the predicate `F` returns true.
+///
+/// This parser will never returns an error.
+#[inline]
+pub fn take_while_n_to_m<I, F>(range: Range<usize>, mut cond: F) -> impl Parser<I, Output = I>
+where
+    I: Input,
+    F: FnMut(I::Item) -> bool,
+{
+    move |input: &mut I| {
+        let mut iter = input.iter();
+        let mut offset = 0;
+        while offset < range.end {
+            if let Some(next) = iter.next() {
+                if !(cond)(next) {
+                    break;
+                }
+
+                offset += next.len();
+            } else {
+                break;
+            }
+        }
+
+        if offset < range.start {
+            return Err(Kind::TakeWhileRange(
+                ControlFlow::Recovable,
+                Span::Range(input.start()..input.start() + offset),
+            )
+            .into());
         }
 
         Ok(input.split_to(offset))

@@ -13,8 +13,8 @@ pub use span::*;
 mod parser;
 pub use parser::*;
 
-mod lexer;
-pub use lexer::*;
+mod combinators;
+pub use combinators::*;
 
 #[cfg(feature = "lang")]
 #[cfg_attr(docsrs, doc(cfg(feature = "lang")))]

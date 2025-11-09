@@ -39,6 +39,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pattex"
+version = "0.10.11"
+dependencies = [
+ "memchr",
+ "parserc",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"

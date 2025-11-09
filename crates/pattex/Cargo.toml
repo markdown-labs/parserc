@@ -1,0 +1,20 @@
+[package]
+description = "A regular expression implementation based on `parserc`"
+documentation = "https://docs.rs/pattex"
+edition = "2024"
+license = "MIT"
+name = "pattex"
+repository = "https://github.com/stylang/parserc/crates/pattex"
+version.workspace = true
+
+[dependencies]
+thiserror = "2.0.17"
+memchr = { version = "2.7.6" }
+serde = { version = "1.0.228", optional = true }
+
+parserc = { version = "^0.10", path = "../parserc", default-features=false, features=["syntax"] }
+
+
+[features]
+default = ["serde"]
+serde = ["dep:serde","parserc/serde"]
