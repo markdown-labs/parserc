@@ -25,7 +25,7 @@ impl ParseError for MockError {
         todo!()
     }
 
-    fn span(&self) -> parserc::Span {
+    fn to_span(&self) -> parserc::Span {
         todo!()
     }
 }

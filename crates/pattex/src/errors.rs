@@ -21,17 +21,21 @@ pub enum PatternKind {
     UnicodeEscape,
     #[error("character class")]
     CharClass,
+    #[error("character")]
+    Char,
+    #[error("character range")]
+    CharRange,
 }
 
 impl PatternKind {
     /// Map underlying error into `PatternKind`.
     pub fn map(self) -> impl FnOnce(RegexError) -> RegexError {
-        |err: RegexError| RegexError::Pattern(self, err.control_flow(), err.span())
+        |err: RegexError| RegexError::Pattern(self, err.control_flow(), err.to_span())
     }
 
     /// Map underlying error into `PatternKind` fatal error.
     pub fn map_fatal(self) -> impl FnOnce(RegexError) -> RegexError {
-        |err: RegexError| RegexError::Pattern(self, ControlFlow::Fatal, err.span())
+        |err: RegexError| RegexError::Pattern(self, ControlFlow::Fatal, err.to_span())
     }
 }
 
@@ -47,9 +51,9 @@ pub enum RegexError {
 }
 
 impl ParseError for RegexError {
-    fn span(&self) -> Span {
+    fn to_span(&self) -> Span {
         match self {
-            RegexError::Other(kind) => kind.span(),
+            RegexError::Other(kind) => kind.to_span(),
             RegexError::Pattern(_, _, span) => span.clone(),
         }
     }

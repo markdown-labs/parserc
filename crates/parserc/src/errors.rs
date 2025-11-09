@@ -42,7 +42,7 @@ pub enum Kind {
 /// A error type returns by parser combinators.
 pub trait ParseError: From<Kind> {
     /// Returns the span of this error indicates to.
-    fn span(&self) -> Span;
+    fn to_span(&self) -> Span;
     /// Returns `ControlFlow` code of this error.
     fn control_flow(&self) -> ControlFlow;
 
@@ -83,7 +83,7 @@ impl ParseError for Kind {
         }
     }
 
-    fn span(&self) -> Span {
+    fn to_span(&self) -> Span {
         match self {
             Kind::Next(_, span) => span.clone(),
             Kind::NextIf(_, span) => span.clone(),

@@ -403,6 +403,84 @@ where
     Escape(Escape<I>),
 }
 
+impl<I> Syntax<I> for Char<I>
+where
+    I: PatternInput,
+{
+    fn parse(input: &mut I) -> Result<Self, <I as parserc::Input>::Error> {
+        if let Some(escape) = Escape::into_parser().ok().parse(input)? {
+            return Ok(Self::Escape(escape));
+        }
+
+        let mut iter = input.iter();
+
+        let Some(start) = iter.next() else {
+            return Err(RegexError::Pattern(
+                PatternKind::Char,
+                ControlFlow::Recovable,
+                Span::Range(input.start()..input.start()),
+            ));
+        };
+
+        if start == ']' {
+            return Err(RegexError::Pattern(
+                PatternKind::Char,
+                ControlFlow::Recovable,
+                Span::Range(input.start()..input.start() + 1),
+            ));
+        }
+
+        if start == '-' {
+            return Err(RegexError::Pattern(
+                PatternKind::Char,
+                ControlFlow::Fatal,
+                Span::Range(input.start()..input.start() + 1),
+            ));
+        }
+
+        if let Some('-') = iter.next() {
+            if let Some(end) = iter.next() {
+                if !(end > start) {
+                    return Err(RegexError::Pattern(
+                        PatternKind::CharRange,
+                        ControlFlow::Fatal,
+                        Span::Range(input.start()..input.start() + 3),
+                    ));
+                }
+
+                Ok(Self::Range {
+                    start,
+                    end,
+                    input: input.split_to(3),
+                })
+            } else {
+                Err(RegexError::Pattern(
+                    PatternKind::CharRange,
+                    ControlFlow::Fatal,
+                    Span::Range(input.start()..input.start() + 2),
+                ))
+            }
+        } else {
+            Ok(Self::C {
+                value: start,
+                input: input.split_to(1),
+            })
+        }
+    }
+
+    fn to_span(&self) -> Span {
+        match self {
+            Char::C { value: _, input } => input.to_span(),
+            Char::Range {
+                start: _,
+                end: _,
+                input,
+            } => input.to_span(),
+            Char::Escape(escape) => escape.to_span(),
+        }
+    }
+}
+
 /// character class
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -425,28 +503,28 @@ where
     I: PatternInput,
 {
     #[inline]
-    fn parse(_input: &mut I) -> Result<Self, <I as parserc::Input>::Error> {
-        // let delimiter_start = next('[')
-        //     .parse(input)
-        //     .map_err(PatternKind::CharClass.map())?;
+    fn parse(input: &mut I) -> Result<Self, <I as parserc::Input>::Error> {
+        let delimiter_start = next('[')
+            .parse(input)
+            .map_err(PatternKind::CharClass.map())?;
 
-        // let negated = next('^')
-        //     .ok()
-        //     .parse(input)
-        //     .map_err(PatternKind::CharClass.map())?;
+        let negated = next('^')
+            .ok()
+            .parse(input)
+            .map_err(PatternKind::CharClass.map())?;
 
-        // let delimiter_end = next(']')
-        //     .parse(input)
-        //     .map_err(PatternKind::CharClass.map_fatal())?;
+        let chars: Vec<Char<_>> = input.parse()?;
 
-        todo!()
+        let delimiter_end = next(']')
+            .parse(input)
+            .map_err(PatternKind::CharClass.map_fatal())?;
 
-        // Ok(Self {
-        //     delimiter_start,
-        //     negated,
-        //     delimiter_end,
-        //     chars: todo!(),
-        // })
+        Ok(Self {
+            delimiter_start,
+            negated,
+            delimiter_end,
+            chars,
+        })
     }
 
     #[inline]
@@ -462,7 +540,7 @@ mod tests {
     use crate::{
         errors::{PatternKind, RegexError},
         input::TokenStream,
-        pattern::{Digits, Escape, Repeat},
+        pattern::{Char, CharClass, Digits, Escape, Repeat},
     };
 
     #[test]
@@ -637,16 +715,74 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_char_class() {
-    //     assert_eq!(
-    //         TokenStream::from("[^A-Z0-9]").parse(),
-    //         Ok(CharClass {
-    //             delimiter_start: todo!(),
-    //             negated: todo!(),
-    //             chars: todo!(),
-    //             delimiter_end: todo!()
-    //         })
-    //     );
-    // }
+    #[test]
+    fn test_char_class() {
+        assert_eq!(
+            TokenStream::from("[^A-Z0-9]").parse(),
+            Ok(CharClass {
+                delimiter_start: TokenStream::from("["),
+                negated: Some(TokenStream::from((1, "^"))),
+                chars: vec![
+                    Char::Range {
+                        start: 'A',
+                        end: 'Z',
+                        input: TokenStream::from((2, "A-Z"))
+                    },
+                    Char::Range {
+                        start: '0',
+                        end: '9',
+                        input: TokenStream::from((5, "0-9"))
+                    }
+                ],
+                delimiter_end: TokenStream::from((8, "]"))
+            })
+        );
+
+        assert_eq!(
+            TokenStream::from("[a - b]").parse::<CharClass<_>>(),
+            Err(RegexError::Pattern(
+                PatternKind::CharRange,
+                ControlFlow::Fatal,
+                Span::Range(2..5)
+            ))
+        );
+
+        assert_eq!(
+            TokenStream::from("[a -b]").parse(),
+            Ok(CharClass {
+                delimiter_start: TokenStream::from("["),
+                negated: None,
+                chars: vec![
+                    Char::C {
+                        value: 'a',
+                        input: TokenStream::from((1, "a"))
+                    },
+                    Char::Range {
+                        start: ' ',
+                        end: 'b',
+                        input: TokenStream::from((2, " -b"))
+                    }
+                ],
+                delimiter_end: TokenStream::from((5, "]"))
+            })
+        );
+
+        assert_eq!(
+            TokenStream::from("[a- b]").parse::<CharClass<_>>(),
+            Err(RegexError::Pattern(
+                PatternKind::CharRange,
+                ControlFlow::Fatal,
+                Span::Range(1..4)
+            ))
+        );
+
+        assert_eq!(
+            TokenStream::from("[z-c]").parse::<CharClass<_>>(),
+            Err(RegexError::Pattern(
+                PatternKind::CharRange,
+                ControlFlow::Fatal,
+                Span::Range(1..4)
+            ))
+        );
+    }
 }
