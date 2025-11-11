@@ -82,7 +82,7 @@ where
             return Err(RegexError::Pattern(
                 PatternKind::Escape,
                 ControlFlow::Recovable,
-                input.to_span_with(1),
+                input.to_span_at(1),
             ));
         };
 
@@ -147,7 +147,7 @@ where
                     Err(RegexError::Pattern(
                         PatternKind::Escape,
                         ControlFlow::Recovable,
-                        input.to_span_with(1),
+                        input.to_span_at(1),
                     ))
                 }
             }

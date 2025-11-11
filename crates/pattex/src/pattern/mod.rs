@@ -5,3 +5,9 @@ pub use token::*;
 
 mod escape;
 pub use escape::*;
+
+mod repeat;
+pub use repeat::*;
+
+mod digits;
+pub use digits::*;

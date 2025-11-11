@@ -113,7 +113,7 @@ pub trait Input: PartialEq + Debug {
 
     /// Returns the region from `start` of this input to `at` position.
     #[inline]
-    fn to_span_with(&self, at: usize) -> Span {
+    fn to_span_at(&self, at: usize) -> Span {
         Span::Range(self.start()..cmp::min(self.start() + at, self.end()))
     }
 }

@@ -9,6 +9,8 @@ pub enum PatternKind {
     S,
     #[error("digits")]
     Digits,
+    #[error("repeat")]
+    Repeat,
     #[error("token")]
     Token,
     #[error("escape")]

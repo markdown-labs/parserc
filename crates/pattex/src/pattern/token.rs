@@ -3,7 +3,7 @@ use parserc::{ControlFlow, syntax::Syntax};
 use crate::{
     errors::{PatternKind, RegexError},
     input::PatternInput,
-    pattern::Escape,
+    pattern::{Escape, Repeat},
 };
 
 /// Token types of regular expression.
@@ -13,6 +13,8 @@ pub enum Token<I>
 where
     I: PatternInput,
 {
+    /// [`Repeat`] token.
+    Repeat(Repeat<I>),
     /// escape sequence.
     Escape(Escape<I>),
     /// |
@@ -27,10 +29,6 @@ where
     Plus(I),
     /// ?
     Question(I),
-    /// {
-    BraceStart(I),
-    /// }
-    BraceEnd(I),
     /// [
     BracketStart(I),
     /// [:
@@ -78,7 +76,7 @@ where
             return Err(RegexError::Pattern(
                 PatternKind::Token,
                 ControlFlow::Recovable,
-                input.to_span_with(1),
+                input.to_span_at(1),
             ));
         };
 
@@ -100,13 +98,12 @@ where
                     _ => Err(RegexError::Pattern(
                         PatternKind::Token,
                         ControlFlow::Recovable,
-                        input.to_span_with(2),
+                        input.to_span_at(2),
                     )),
                 },
                 _ => Ok(Self::Question(input.split_to(1))),
             },
-            '{' => Ok(Self::BraceStart(input.split_to(1))),
-            '}' => Ok(Self::BraceEnd(input.split_to(1))),
+            '{' => Repeat::parse(input).map(|repeat| Self::Repeat(repeat)),
             '[' => match iter.next() {
                 Some(':') => Ok(Self::BracketStartColon(input.split_to(2))),
                 Some('.') => Ok(Self::BracketStartDot(input.split_to(2))),
@@ -121,7 +118,7 @@ where
                     Err(RegexError::Pattern(
                         PatternKind::Token,
                         ControlFlow::Recovable,
-                        input.to_span_with(1),
+                        input.to_span_at(1),
                     ))
                 }
             }
@@ -139,7 +136,7 @@ where
                     Err(RegexError::Pattern(
                         PatternKind::Token,
                         ControlFlow::Recovable,
-                        input.to_span_with(1),
+                        input.to_span_at(1),
                     ))
                 }
             }
@@ -149,7 +146,7 @@ where
                 return Err(RegexError::Pattern(
                     PatternKind::Token,
                     ControlFlow::Recovable,
-                    input.to_span_with(1),
+                    input.to_span_at(1),
                 ));
             }
         }
@@ -164,8 +161,7 @@ where
             Token::Star(input) => input.to_span(),
             Token::Plus(input) => input.to_span(),
             Token::Question(input) => input.to_span(),
-            Token::BraceStart(input) => input.to_span(),
-            Token::BraceEnd(input) => input.to_span(),
+            Token::Repeat(input) => input.to_span(),
             Token::BracketStart(input) => input.to_span(),
             Token::BracketStartColon(input) => input.to_span(),
             Token::BracketStartDot(input) => input.to_span(),
@@ -193,7 +189,7 @@ mod tests {
 
     use crate::{
         input::TokenStream,
-        pattern::{Escape, Token},
+        pattern::{Digits, Escape, Repeat, Token},
     };
 
     #[test]
@@ -214,8 +210,6 @@ mod tests {
             make_test!(Star, "*"),
             make_test!(Plus, "+"),
             make_test!(Question, "?"),
-            make_test!(BraceStart, "{"),
-            make_test!(BraceEnd, "}"),
             make_test!(BracketStart, "["),
             make_test!(BracketStartColon, "[:"),
             make_test!(BracketStartDot, "[."),
@@ -243,6 +237,21 @@ mod tests {
             Ok(Token::Escape(Escape::BackReferences(TokenStream::from(
                 r"\12"
             ))))
+        );
+
+        assert_eq!(
+            TokenStream::from("{10,40}100").parse(),
+            Ok(Token::Repeat(Repeat::Range {
+                n: Digits {
+                    value: 10,
+                    input: TokenStream::from((1, "10"))
+                },
+                m: Digits {
+                    value: 40,
+                    input: TokenStream::from((4, "40"))
+                },
+                input: TokenStream::from("{10,40}")
+            }))
         );
     }
 }
