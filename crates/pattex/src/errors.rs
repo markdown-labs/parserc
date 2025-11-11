@@ -9,22 +9,14 @@ pub enum PatternKind {
     S,
     #[error("digits")]
     Digits,
-    #[error("repeat")]
-    Repeat,
-    #[error("repeat range")]
-    RepeatRange,
+    #[error("token")]
+    Token,
     #[error("escape")]
     Escape,
-    #[error("hexidecimal escape")]
-    HexEscape,
-    #[error("Unicode escape")]
-    UnicodeEscape,
-    #[error("character class")]
-    CharClass,
-    #[error("character")]
-    Char,
-    #[error("character range")]
-    CharRange,
+    #[error("escape hexidecimal number")]
+    EscapeHex,
+    #[error("escape unicode")]
+    EscapeUnicode,
 }
 
 impl PatternKind {

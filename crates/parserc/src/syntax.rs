@@ -357,15 +357,18 @@ where
 }
 
 /// Use the parsed prefix to parse the syntax tree.
-pub trait PartialSyntax<I, P>: Sized
+pub trait PartialSyntax<I>: Sized
 where
     I: Input,
 {
+    /// Parsed prefix.
+    type P;
+
     ///  Use the parsed prefix to parse the syntax tree.
-    fn parse_with_prefix(prefix: P, input: &mut I) -> Result<Self, I::Error>;
+    fn parse_with_prefix(prefix: Self::P, input: &mut I) -> Result<Self, I::Error>;
 
     /// Create a new `Parser` with parsed prefix subtree.
-    fn into_parser_with_prefix(prefix: P) -> impl Parser<I, Output = Self> {
+    fn into_parser_with_prefix(prefix: Self::P) -> impl Parser<I, Output = Self> {
         PartialSyntaxParser(prefix, Default::default(), Default::default())
     }
 }
@@ -375,7 +378,7 @@ struct PartialSyntaxParser<S, P, T>(P, PhantomData<S>, PhantomData<T>);
 impl<I, P, T> Parser<I> for PartialSyntaxParser<I, P, T>
 where
     I: Input,
-    T: PartialSyntax<I, P>,
+    T: PartialSyntax<I, P = P>,
 {
     type Output = T;
 

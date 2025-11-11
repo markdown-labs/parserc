@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{cmp, fmt::Debug};
 
 use crate::{ParseError, Span};
 
@@ -109,5 +109,11 @@ pub trait Input: PartialEq + Debug {
     #[inline]
     fn to_span(&self) -> Span {
         Span::Range(self.start()..self.end())
+    }
+
+    /// Returns the region from `start` of this input to `at` position.
+    #[inline]
+    fn to_span_with(&self, at: usize) -> Span {
+        Span::Range(self.start()..cmp::min(self.start() + at, self.end()))
     }
 }
