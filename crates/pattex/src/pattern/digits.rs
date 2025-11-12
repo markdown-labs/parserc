@@ -1,7 +1,7 @@
 use parserc::{ControlFlow, Parser, syntax::Syntax, take_while_range_from};
 
 use crate::{
-    errors::{PatternKind, RegexError},
+    errors::{CompileError, RegexError},
     input::PatternInput,
 };
 
@@ -24,10 +24,10 @@ where
     fn parse(input: &mut I) -> Result<Self, <I as parserc::Input>::Error> {
         let content = take_while_range_from(1, |c: char| c.is_ascii_digit())
             .parse(input)
-            .map_err(PatternKind::Digits.map())?;
+            .map_err(CompileError::Digits.map())?;
 
         let value = content.as_str().parse().map_err(|_| {
-            RegexError::Pattern(PatternKind::Digits, ControlFlow::Fatal, content.to_span())
+            RegexError::Compile(CompileError::Digits, ControlFlow::Fatal, content.to_span())
         })?;
 
         Ok(Self {

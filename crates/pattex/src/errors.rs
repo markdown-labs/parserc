@@ -4,7 +4,7 @@ use parserc::{ControlFlow, Kind, ParseError, Span};
 
 /// Kind of parsing `regular expressions` error.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
-pub enum PatternKind {
+pub enum CompileError {
     #[error("whitespaces")]
     S,
     #[error("digits")]
@@ -19,17 +19,23 @@ pub enum PatternKind {
     EscapeHex,
     #[error("escape unicode")]
     EscapeUnicode,
+    #[error("character sequence")]
+    CharSequence,
+    #[error("character range")]
+    CharRange,
+    #[error("character class")]
+    CharClass,
 }
 
-impl PatternKind {
+impl CompileError {
     /// Map underlying error into `PatternKind`.
     pub fn map(self) -> impl FnOnce(RegexError) -> RegexError {
-        |err: RegexError| RegexError::Pattern(self, err.control_flow(), err.to_span())
+        |err: RegexError| RegexError::Compile(self, err.control_flow(), err.to_span())
     }
 
     /// Map underlying error into `PatternKind` fatal error.
     pub fn map_fatal(self) -> impl FnOnce(RegexError) -> RegexError {
-        |err: RegexError| RegexError::Pattern(self, ControlFlow::Fatal, err.to_span())
+        |err: RegexError| RegexError::Compile(self, ControlFlow::Fatal, err.to_span())
     }
 }
 
@@ -41,29 +47,29 @@ pub enum RegexError {
     Other(#[from] Kind),
     /// Identified parsing errors
     #[error("failed to parsing `{0:?}`, {1:?}, {2:?}")]
-    Pattern(PatternKind, ControlFlow, Span),
+    Compile(CompileError, ControlFlow, Span),
 }
 
 impl ParseError for RegexError {
     fn to_span(&self) -> Span {
         match self {
             RegexError::Other(kind) => kind.to_span(),
-            RegexError::Pattern(_, _, span) => span.clone(),
+            RegexError::Compile(_, _, span) => span.clone(),
         }
     }
 
     fn control_flow(&self) -> ControlFlow {
         match self {
             RegexError::Other(kind) => kind.control_flow(),
-            RegexError::Pattern(_, control_flow, _) => *control_flow,
+            RegexError::Compile(_, control_flow, _) => *control_flow,
         }
     }
 
     fn into_fatal(self) -> Self {
         match self {
             RegexError::Other(kind) => RegexError::Other(kind.into_fatal()),
-            RegexError::Pattern(kind, _, span) => {
-                RegexError::Pattern(kind, ControlFlow::Fatal, span)
+            RegexError::Compile(kind, _, span) => {
+                RegexError::Compile(kind, ControlFlow::Fatal, span)
             }
         }
     }

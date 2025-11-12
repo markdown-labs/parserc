@@ -1,7 +1,7 @@
 use parserc::{ControlFlow, Parser, next, syntax::Syntax};
 
 use crate::{
-    errors::{PatternKind, RegexError},
+    errors::{CompileError, RegexError},
     input::PatternInput,
     pattern::Digits,
 };
@@ -35,27 +35,27 @@ where
     fn parse(input: &mut I) -> Result<Self, <I as parserc::Input>::Error> {
         let mut span = input.clone();
 
-        next('{').parse(input).map_err(PatternKind::Repeat.map())?;
+        next('{').parse(input).map_err(CompileError::Repeat.map())?;
 
-        let n = Digits::parse(input).map_err(PatternKind::Repeat.map_fatal())?;
+        let n = Digits::parse(input).map_err(CompileError::Repeat.map_fatal())?;
 
         if let Some(_) = next(',')
             .ok()
             .parse(input)
-            .map_err(PatternKind::Repeat.map_fatal())?
+            .map_err(CompileError::Repeat.map_fatal())?
         {
             if let Some(m) = Digits::into_parser()
                 .ok()
                 .parse(input)
-                .map_err(PatternKind::Repeat.map_fatal())?
+                .map_err(CompileError::Repeat.map_fatal())?
             {
                 let end = next('}')
                     .parse(input)
-                    .map_err(PatternKind::Repeat.map_fatal())?;
+                    .map_err(CompileError::Repeat.map_fatal())?;
 
                 if n.value > m.value {
-                    return Err(RegexError::Pattern(
-                        PatternKind::Repeat,
+                    return Err(RegexError::Compile(
+                        CompileError::Repeat,
                         ControlFlow::Fatal,
                         span.to_span_at(end.end() - span.start()),
                     ));
@@ -69,7 +69,7 @@ where
             } else {
                 let end = next('}')
                     .parse(input)
-                    .map_err(PatternKind::Repeat.map_fatal())?;
+                    .map_err(CompileError::Repeat.map_fatal())?;
 
                 return Ok(Self::From {
                     n,
@@ -80,7 +80,7 @@ where
 
         let end = next('}')
             .parse(input)
-            .map_err(PatternKind::Repeat.map_fatal())?;
+            .map_err(CompileError::Repeat.map_fatal())?;
 
         Ok(Self::Repeat {
             n,
@@ -149,8 +149,8 @@ mod tests {
 
         assert_eq!(
             TokenStream::from("{ 10} ").parse::<Repeat<_>>(),
-            Err(RegexError::Pattern(
-                PatternKind::Repeat,
+            Err(RegexError::Compile(
+                CompileError::Repeat,
                 ControlFlow::Fatal,
                 Span::Range(1..1)
             ))
@@ -158,8 +158,8 @@ mod tests {
 
         assert_eq!(
             TokenStream::from("{10 } ").parse::<Repeat<_>>(),
-            Err(RegexError::Pattern(
-                PatternKind::Repeat,
+            Err(RegexError::Compile(
+                CompileError::Repeat,
                 ControlFlow::Fatal,
                 Span::Range(3..4)
             ))
@@ -167,8 +167,8 @@ mod tests {
 
         assert_eq!(
             TokenStream::from("{10, } ").parse::<Repeat<_>>(),
-            Err(RegexError::Pattern(
-                PatternKind::Repeat,
+            Err(RegexError::Compile(
+                CompileError::Repeat,
                 ControlFlow::Fatal,
                 Span::Range(4..5)
             ))
@@ -176,8 +176,8 @@ mod tests {
 
         assert_eq!(
             TokenStream::from("{10, 20} ").parse::<Repeat<_>>(),
-            Err(RegexError::Pattern(
-                PatternKind::Repeat,
+            Err(RegexError::Compile(
+                CompileError::Repeat,
                 ControlFlow::Fatal,
                 Span::Range(4..5)
             ))
@@ -185,8 +185,8 @@ mod tests {
 
         assert_eq!(
             TokenStream::from("{10 ,20} ").parse::<Repeat<_>>(),
-            Err(RegexError::Pattern(
-                PatternKind::Repeat,
+            Err(RegexError::Compile(
+                CompileError::Repeat,
                 ControlFlow::Fatal,
                 Span::Range(3..4)
             ))
@@ -194,8 +194,8 @@ mod tests {
 
         assert_eq!(
             TokenStream::from("{10,5} ").parse::<Repeat<_>>(),
-            Err(RegexError::Pattern(
-                PatternKind::Repeat,
+            Err(RegexError::Compile(
+                CompileError::Repeat,
                 ControlFlow::Fatal,
                 Span::Range(0..6)
             ))

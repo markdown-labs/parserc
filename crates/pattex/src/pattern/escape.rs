@@ -1,7 +1,7 @@
 use parserc::{ControlFlow, Parser, next, syntax::Syntax, take_while_range, take_while_range_from};
 
 use crate::{
-    errors::{PatternKind, RegexError},
+    errors::{CompileError, RegexError},
     input::PatternInput,
 };
 
@@ -24,6 +24,8 @@ where
     Star(I),
     /// +
     Plus(I),
+    /// -
+    Minus(I),
     /// ?
     Question(I),
     /// {
@@ -79,8 +81,8 @@ where
         let mut iter = input.iter();
 
         let Some('\\') = iter.next() else {
-            return Err(RegexError::Pattern(
-                PatternKind::Escape,
+            return Err(RegexError::Compile(
+                CompileError::Escape,
                 ControlFlow::Recovable,
                 input.to_span_at(1),
             ));
@@ -93,6 +95,7 @@ where
             Some('$') => Ok(Self::Dollar(input.split_to(2))),
             Some('*') => Ok(Self::Star(input.split_to(2))),
             Some('+') => Ok(Self::Plus(input.split_to(2))),
+            Some('-') => Ok(Self::Minus(input.split_to(2))),
             Some('?') => Ok(Self::Question(input.split_to(2))),
             Some('{') => Ok(Self::BraceStart(input.split_to(2))),
             Some('[') => Ok(Self::BracketStart(input.split_to(2))),
@@ -115,7 +118,7 @@ where
             Some('x') => {
                 take_while_range(2..2, |c: char| c.is_ascii_hexdigit())
                     .parse(&mut input.clone().split_off(2))
-                    .map_err(PatternKind::EscapeHex.map_fatal())?;
+                    .map_err(CompileError::EscapeHex.map_fatal())?;
 
                 Ok(Self::Hex(input.split_to(4)))
             }
@@ -124,15 +127,15 @@ where
 
                 next('{')
                     .parse(&mut content)
-                    .map_err(PatternKind::EscapeUnicode.map_fatal())?;
+                    .map_err(CompileError::EscapeUnicode.map_fatal())?;
 
                 let num = take_while_range_from(1, |c: char| c.is_ascii_hexdigit())
                     .parse(&mut content)
-                    .map_err(PatternKind::EscapeUnicode.map_fatal())?;
+                    .map_err(CompileError::EscapeUnicode.map_fatal())?;
 
                 next('}')
                     .parse(&mut content)
-                    .map_err(PatternKind::EscapeUnicode.map_fatal())?;
+                    .map_err(CompileError::EscapeUnicode.map_fatal())?;
 
                 Ok(Self::Unicode(input.split_to(4 + num.len())))
             }
@@ -140,12 +143,12 @@ where
                 if let Some(num) = take_while_range_from(1, |c: char| c.is_ascii_digit())
                     .ok()
                     .parse(&mut input.clone().split_off(1))
-                    .map_err(PatternKind::Escape.map())?
+                    .map_err(CompileError::Escape.map())?
                 {
                     Ok(Self::BackReferences(input.split_to(1 + num.len())))
                 } else {
-                    Err(RegexError::Pattern(
-                        PatternKind::Escape,
+                    Err(RegexError::Compile(
+                        CompileError::Escape,
                         ControlFlow::Recovable,
                         input.to_span_at(1),
                     ))
@@ -185,6 +188,7 @@ where
             Escape::Word(input) => input.to_span(),
             Escape::NonWord(input) => input.to_span(),
             Escape::Hex(input) => input.to_span(),
+            Escape::Minus(input) => input.to_span(),
         }
     }
 }

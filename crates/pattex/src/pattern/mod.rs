@@ -11,3 +11,6 @@ pub use repeat::*;
 
 mod digits;
 pub use digits::*;
+
+mod class;
+pub use class::*;

@@ -119,6 +119,7 @@ where
         self.0.parse(input).map(|output| (self.1)(output))
     }
 }
+
 struct Fatal<P>(P);
 
 impl<P, I> Parser<I> for Fatal<P>

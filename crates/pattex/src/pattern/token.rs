@@ -1,7 +1,7 @@
 use parserc::{ControlFlow, syntax::Syntax};
 
 use crate::{
-    errors::{PatternKind, RegexError},
+    errors::{CompileError, RegexError},
     input::PatternInput,
     pattern::{Escape, Repeat},
 };
@@ -27,6 +27,8 @@ where
     Star(I),
     /// +
     Plus(I),
+    /// -
+    Minus(I),
     /// ?
     Question(I),
     /// [
@@ -63,6 +65,15 @@ where
     QuestionLtNot(I),
 }
 
+#[inline]
+pub(super) fn token_lookahead(c: char) -> bool {
+    match c {
+        '\\' | '|' | '^' | '$' | '*' | '+' | '-' | '?' | '{' | '[' | ']' | ':' | '.' | '='
+        | '(' | ')' => true,
+        _ => false,
+    }
+}
+
 impl<I> Syntax<I> for Token<I>
 where
     I: PatternInput,
@@ -73,8 +84,8 @@ where
 
         let Some(next) = iter.next() else {
             // if next char is `None`.
-            return Err(RegexError::Pattern(
-                PatternKind::Token,
+            return Err(RegexError::Compile(
+                CompileError::Token,
                 ControlFlow::Recovable,
                 input.to_span_at(1),
             ));
@@ -88,6 +99,7 @@ where
             '$' => Ok(Self::Dollar(input.split_to(1))),
             '*' => Ok(Self::Star(input.split_to(1))),
             '+' => Ok(Self::Plus(input.split_to(1))),
+            '-' => Ok(Self::Minus(input.split_to(1))),
             '?' => match iter.next() {
                 Some(':') => Ok(Self::QuestionColon(input.split_to(2))),
                 Some('=') => Ok(Self::QuestionEq(input.split_to(2))),
@@ -95,8 +107,8 @@ where
                 Some('<') => match iter.next() {
                     Some('=') => Ok(Self::QuestionLtEq(input.split_to(3))),
                     Some('!') => Ok(Self::QuestionLtNot(input.split_to(3))),
-                    _ => Err(RegexError::Pattern(
-                        PatternKind::Token,
+                    _ => Err(RegexError::Compile(
+                        CompileError::Token,
                         ControlFlow::Recovable,
                         input.to_span_at(2),
                     )),
@@ -115,8 +127,8 @@ where
                 if let Some(']') = iter.next() {
                     Ok(Self::ColonBracketEnd(input.split_to(2)))
                 } else {
-                    Err(RegexError::Pattern(
-                        PatternKind::Token,
+                    Err(RegexError::Compile(
+                        CompileError::Token,
                         ControlFlow::Recovable,
                         input.to_span_at(1),
                     ))
@@ -133,8 +145,8 @@ where
                 if let Some(']') = iter.next() {
                     Ok(Self::EqBracketEnd(input.split_to(2)))
                 } else {
-                    Err(RegexError::Pattern(
-                        PatternKind::Token,
+                    Err(RegexError::Compile(
+                        CompileError::Token,
                         ControlFlow::Recovable,
                         input.to_span_at(1),
                     ))
@@ -143,8 +155,8 @@ where
             '(' => Ok(Self::ParenStart(input.split_to(1))),
             ')' => Ok(Self::ParenEnd(input.split_to(1))),
             _ => {
-                return Err(RegexError::Pattern(
-                    PatternKind::Token,
+                return Err(RegexError::Compile(
+                    CompileError::Token,
                     ControlFlow::Recovable,
                     input.to_span_at(1),
                 ));
@@ -179,6 +191,7 @@ where
             Token::QuestionLtEq(input) => input.to_span(),
             Token::QuestionLtNot(input) => input.to_span(),
             Token::Escape(escape) => escape.to_span(),
+            Token::Minus(input) => input.to_span(),
         }
     }
 }
