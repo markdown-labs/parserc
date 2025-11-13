@@ -2,7 +2,7 @@
 
 use std::{fmt::Debug, marker::PhantomData};
 
-use crate::{ControlFlow, Kind, Span};
+use crate::{ControlFlow, Kind, Span, next};
 use crate::{input::Input, parser::Parser};
 
 /// An extension trait to help syntax struct parsing.
@@ -123,6 +123,50 @@ where
         let last = self.last().map_or(Span::None, |v| v.to_span());
 
         first.union(&last)
+    }
+}
+
+/// A sytanx node to match a char.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Char<I, const C: char>(pub I)
+where
+    I: Input;
+
+impl<I, const C: char> Syntax<I> for Char<I, C>
+where
+    I: Input<Item = char>,
+{
+    #[inline]
+    fn parse(input: &mut I) -> Result<Self, <I as Input>::Error> {
+        next(C).map(|input| Self(input)).parse(input)
+    }
+
+    #[inline]
+    fn to_span(&self) -> Span {
+        self.0.to_span()
+    }
+}
+
+/// A sytanx node to match a byte.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Byte<I, const C: u8>(pub I)
+where
+    I: Input;
+
+impl<I, const C: u8> Syntax<I> for Byte<I, C>
+where
+    I: Input<Item = u8>,
+{
+    #[inline]
+    fn parse(input: &mut I) -> Result<Self, <I as Input>::Error> {
+        next(C).map(|input| Self(input)).parse(input)
+    }
+
+    #[inline]
+    fn to_span(&self) -> Span {
+        self.0.to_span()
     }
 }
 
@@ -396,7 +440,12 @@ pub use parserc_derive::token;
 
 #[cfg(test)]
 mod tests {
-    use crate::{input::Input, syntax::Syntax};
+    use crate::{
+        Kind,
+        input::Input,
+        lang::TokenStream,
+        syntax::{Byte, Syntax},
+    };
 
     #[allow(unused)]
     struct Mock;
@@ -412,5 +461,15 @@ mod tests {
         fn to_span(&self) -> crate::Span {
             todo!()
         }
+    }
+
+    #[test]
+    fn test_byte() {
+        type H<I> = Byte<I, b'H'>;
+
+        assert_eq!(
+            H::parse(&mut TokenStream::<'_, Kind>::from("Hello")),
+            Ok(Byte(TokenStream::from("H")))
+        );
     }
 }

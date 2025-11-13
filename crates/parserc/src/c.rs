@@ -13,7 +13,7 @@ use crate::{
 #[inline]
 pub fn next<I>(item: I::Item) -> impl Parser<I, Output = I>
 where
-    I: Input + Clone,
+    I: Input,
 {
     move |input: &mut I| {
         if let Some(next) = input.iter().next() {
@@ -36,7 +36,7 @@ where
 #[inline]
 pub fn next_if<I, F>(f: F) -> impl Parser<I, Output = I>
 where
-    I: Input + Clone,
+    I: Input,
     F: FnOnce(I::Item) -> bool,
 {
     move |input: &mut I| {
