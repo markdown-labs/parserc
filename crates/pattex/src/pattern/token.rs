@@ -1,38 +1,163 @@
-use parserc::syntax::{Char, keyword};
+use parserc::syntax::Syntax;
+
+use crate::input::PatternInput;
 
 /// backslash token `\`
-pub type BackSlash<I> = Char<I, '\\'>;
-/// caret token `^`
-pub type Caret<I> = Char<I, '^'>;
-/// brace start token `{`
-pub type BraceStart<I> = Char<I, '{'>;
-/// brace end token `}`
-pub type BraceEnd<I> = Char<I, '}'>;
-/// bracket start token `[`
-pub type BracketStart<I> = Char<I, '['>;
-/// bracket end token `]`
-pub type BracketEnd<I> = Char<I, ']'>;
-/// parenthesis start token `(`
-pub type ParenStart<I> = Char<I, '('>;
-/// parenthesis end token `)`
-pub type ParenEnd<I> = Char<I, ')'>;
-/// or token `|`
-pub type Or<I> = Char<I, '|'>;
-/// question token `?`
-pub type Question<I> = Char<I, '?'>;
-/// dot token `.`
-pub type Dot<I> = Char<I, '.'>;
-/// plus token `+`
-pub type Plus<I> = Char<I, '+'>;
-/// minus token `-`
-pub type Minus<I> = Char<I, '-'>;
-/// star token `*`
-pub type Star<I> = Char<I, '*'>;
-/// dollar token `$`
-pub type Dollar<I> = Char<I, '$'>;
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '\\')]
+pub struct BackSlash<I>(pub I)
+where
+    I: PatternInput;
 
-keyword!(BracketStartQeustionColon, "(?:");
-keyword!(BracketStartQeustionEq, "(?=");
-keyword!(BracketStartQeustionNot, "(?!");
-keyword!(BracketStartQeustionLtEq, "(?<=");
-keyword!(BracketStartQeustionLtNot, "(?<!");
+/// caret token `^`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '^')]
+pub struct Caret<I>(pub I)
+where
+    I: PatternInput;
+
+/// brace start token `{`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '{')]
+pub struct BraceStart<I>(pub I)
+where
+    I: PatternInput;
+
+/// brace end token `}`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '}')]
+pub struct BraceEnd<I>(pub I)
+where
+    I: PatternInput;
+
+/// bracket start token `[`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '[')]
+pub struct BracketStart<I>(pub I)
+where
+    I: PatternInput;
+
+/// bracket end token `]`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = ']')]
+pub struct BracketEnd<I>(pub I)
+where
+    I: PatternInput;
+
+/// parenthesis start token `(`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '(')]
+pub struct ParenStart<I>(pub I)
+where
+    I: PatternInput;
+
+/// parenthesis end token `)`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = ')')]
+pub struct ParenEnd<I>(pub I)
+where
+    I: PatternInput;
+
+/// or token `|`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '|')]
+pub struct Or<I>(pub I)
+where
+    I: PatternInput;
+
+/// question token `?`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '?')]
+pub struct Question<I>(pub I)
+where
+    I: PatternInput;
+
+/// dot token `.`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '.')]
+pub struct Dot<I>(pub I)
+where
+    I: PatternInput;
+
+/// plus token `+`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '+')]
+pub struct Plus<I>(pub I)
+where
+    I: PatternInput;
+
+/// minus token `-`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '-')]
+pub struct Minus<I>(pub I)
+where
+    I: PatternInput;
+
+/// star token `*`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '*')]
+pub struct Star<I>(pub I)
+where
+    I: PatternInput;
+
+/// dollar token `$`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(char = '$')]
+pub struct Dollar<I>(pub I)
+where
+    I: PatternInput;
+
+/// token `(?:`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(keyword = "(?:")]
+pub struct BracketStartQeustionColon<I>(pub I)
+where
+    I: PatternInput;
+
+/// token `(?=`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(keyword = "(?=")]
+pub struct BracketStartQeustionEq<I>(pub I)
+where
+    I: PatternInput;
+
+/// token `(?!`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(keyword = "(?!")]
+pub struct BracketStartQeustionNot<I>(pub I)
+where
+    I: PatternInput;
+
+/// token `(?<=`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(keyword = "(?<=")]
+pub struct BracketStartQeustionLtEq<I>(pub I)
+where
+    I: PatternInput;
+
+/// token `(?<!`
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[syntax(keyword = "(?<!")]
+pub struct BracketStartQeustionLtNot<I>(pub I)
+where
+    I: PatternInput;

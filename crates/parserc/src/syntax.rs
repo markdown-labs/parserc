@@ -435,8 +435,6 @@ where
 parserc_derive::derive_tuple_syntax!(16);
 
 pub use parserc_derive::Syntax;
-pub use parserc_derive::keyword;
-pub use parserc_derive::token;
 
 #[cfg(test)]
 mod tests {
