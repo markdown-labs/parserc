@@ -66,3 +66,76 @@ where
     ///  \W
     NonWord(BackSlash<I>, Char<I, 'W'>),
 }
+
+#[cfg(test)]
+mod test {
+    use parserc::syntax::InputSyntaxExt;
+
+    use super::*;
+    use crate::input::TokenStream;
+
+    #[test]
+    fn test_escape() {
+        macro_rules! make_test {
+            ($ty:ident,$input:literal,$match:literal) => {
+                (
+                    TokenStream::from($input),
+                    Escape::$ty(
+                        BackSlash(TokenStream::from("\\")),
+                        $ty(TokenStream::from((1, $match))),
+                    ),
+                )
+            };
+        }
+
+        let tests = [
+            make_test!(Or, r"\|", r"|"),
+            make_test!(BackSlash, r"\\", r"\"),
+            make_test!(Caret, r"\^", r"^"),
+            make_test!(Dollar, r"\$", r"$"),
+            make_test!(Star, r"\*", r"*"),
+            make_test!(Plus, r"\+", r"+"),
+            make_test!(Question, r"\?", r"?"),
+            make_test!(BraceStart, r"\{", r"{"),
+            make_test!(BracketStart, r"\[", r"["),
+            make_test!(ParenStart, r"\(", r"("),
+            make_test!(Dot, r"\.", r"."),
+        ];
+
+        for (mut input, token) in tests {
+            assert_eq!(input.parse(), Ok(token));
+        }
+
+        macro_rules! make_test {
+            ($ty:ident,$input:literal,$match:literal) => {
+                (
+                    TokenStream::from($input),
+                    Escape::$ty(
+                        BackSlash(TokenStream::from("\\")),
+                        Char(TokenStream::from((1, $match))),
+                    ),
+                )
+            };
+        }
+
+        let tests = [
+            make_test!(Boundery, r"\b", r"b"),
+            make_test!(NonBoundery, r"\B", r"B"),
+            make_test!(Digit, r"\d", r"d"),
+            make_test!(NonDigit, r"\D", r"D"),
+            make_test!(FF, r"\f", r"f"),
+            make_test!(LF, r"\n", r"n"),
+            make_test!(CR, r"\r", r"r"),
+            make_test!(S, r"\s", r"s"),
+            make_test!(NonS, r"\S", r"S"),
+            make_test!(TF, r"\t", r"t"),
+            make_test!(VF, r"\v", r"v"),
+            make_test!(Word, r"\w", r"w"),
+            make_test!(NonWord, r"\W", r"W"),
+        ];
+
+        for (mut input, token) in tests {
+            assert_eq!(input.parse(), Ok(token));
+        }
+    }
+}
