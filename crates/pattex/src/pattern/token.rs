@@ -1,7 +1,9 @@
 use parserc::syntax::{Char, keyword};
 
-/// negated token `^`
-pub type Negated<I> = Char<I, '^'>;
+/// backslash token `\`
+pub type BackSlash<I> = Char<I, '\\'>;
+/// caret token `^`
+pub type Caret<I> = Char<I, '^'>;
 /// brace start token `{`
 pub type BraceStart<I> = Char<I, '{'>;
 /// brace end token `}`
