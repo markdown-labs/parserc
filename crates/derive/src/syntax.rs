@@ -367,7 +367,7 @@ fn derive_syntax_for_struct(item: ItemStruct) -> Result<proc_macro2::TokenStream
                 #[inline]
                 fn parse(input: &mut #ty_input) -> Result<Self, <#ty_input as parserc::Input>::Error> {
                     use parserc::Parser;
-                    parserc::take_while(#token).map(|input| Self(input)).parse(input)
+                    parserc::take_while_range_from(1, #token).map(|input| Self(input)).parse(input)
                 }
 
                 #[inline]

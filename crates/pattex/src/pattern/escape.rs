@@ -3,8 +3,8 @@ use parserc::syntax::{Char, Syntax};
 use crate::{
     input::PatternInput,
     pattern::{
-        BackSlash, BraceStart, BracketStart, Caret, Dollar, Dot, Minus, Or, ParenStart, Plus,
-        Question, Star,
+        BackSlash, BraceStart, BracketStart, Caret, Digits, Dollar, Dot, HexDigits, Minus, Or,
+        ParenStart, Plus, Question, Star,
     },
 };
 
@@ -65,6 +65,12 @@ where
     Word(BackSlash<I>, Char<I, 'w'>),
     ///  \W
     NonWord(BackSlash<I>, Char<I, 'W'>),
+    /// backreference `\1..`
+    BackReference(BackSlash<I>, Digits<I, 2>),
+    /// \xnn
+    Hex(BackSlash<I>, Char<I, 'x'>, HexDigits<I, 2>),
+    /// \unnnn
+    Unicode(BackSlash<I>, Char<I, 'u'>, HexDigits<I, 4>),
 }
 
 #[cfg(test)]
@@ -137,5 +143,31 @@ mod test {
         for (mut input, token) in tests {
             assert_eq!(input.parse(), Ok(token));
         }
+
+        assert_eq!(
+            TokenStream::from(r"\123h").parse(),
+            Ok(Escape::BackReference(
+                BackSlash(TokenStream::from(r"\")),
+                Digits(TokenStream::from((1, "12")))
+            ),)
+        );
+
+        assert_eq!(
+            TokenStream::from(r"\xa0b").parse(),
+            Ok(Escape::Hex(
+                BackSlash(TokenStream::from(r"\")),
+                Char(TokenStream::from((1, "x"))),
+                HexDigits(TokenStream::from((2, "a0")))
+            ),)
+        );
+
+        assert_eq!(
+            TokenStream::from(r"\u00A0h").parse(),
+            Ok(Escape::Unicode(
+                BackSlash(TokenStream::from(r"\")),
+                Char(TokenStream::from((1, "u"))),
+                HexDigits(TokenStream::from((2, "00A0")))
+            ),)
+        );
     }
 }
