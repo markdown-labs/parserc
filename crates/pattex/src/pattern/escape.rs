@@ -3,8 +3,8 @@ use parserc::syntax::{Char, Syntax};
 use crate::{
     input::PatternInput,
     pattern::{
-        BackSlash, BraceStart, BracketStart, Caret, Digits, Dollar, Dot, HexDigits, Minus, Or,
-        ParenStart, Plus, Question, Star,
+        BackSlash, BraceStart, BracketStart, Caret, Dollar, Dot, FixedDigits, FixedHexDigits,
+        Minus, Or, ParenStart, Plus, Question, Star,
     },
 };
 
@@ -66,11 +66,11 @@ where
     ///  \W
     NonWord(BackSlash<I>, Char<I, 'W'>),
     /// backreference `\1..`
-    BackReference(BackSlash<I>, Digits<I, 2>),
+    BackReference(BackSlash<I>, FixedDigits<I, 2>),
     /// \xnn
-    Hex(BackSlash<I>, Char<I, 'x'>, HexDigits<I, 2>),
+    Hex(BackSlash<I>, Char<I, 'x'>, FixedHexDigits<I, 2>),
     /// \unnnn
-    Unicode(BackSlash<I>, Char<I, 'u'>, HexDigits<I, 4>),
+    Unicode(BackSlash<I>, Char<I, 'u'>, FixedHexDigits<I, 4>),
 }
 
 #[cfg(test)]
@@ -148,7 +148,7 @@ mod test {
             TokenStream::from(r"\123h").parse(),
             Ok(Escape::BackReference(
                 BackSlash(TokenStream::from(r"\")),
-                Digits(TokenStream::from((1, "12")))
+                FixedDigits(TokenStream::from((1, "12")))
             ),)
         );
 
@@ -157,7 +157,7 @@ mod test {
             Ok(Escape::Hex(
                 BackSlash(TokenStream::from(r"\")),
                 Char(TokenStream::from((1, "x"))),
-                HexDigits(TokenStream::from((2, "a0")))
+                FixedHexDigits(TokenStream::from((2, "a0")))
             ),)
         );
 
@@ -166,7 +166,7 @@ mod test {
             Ok(Escape::Unicode(
                 BackSlash(TokenStream::from(r"\")),
                 Char(TokenStream::from((1, "u"))),
-                HexDigits(TokenStream::from((2, "00A0")))
+                FixedHexDigits(TokenStream::from((2, "00A0")))
             ),)
         );
     }

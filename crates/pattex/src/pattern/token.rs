@@ -161,3 +161,12 @@ where
 pub struct BracketStartQeustionLtNot<I>(pub I)
 where
     I: PatternInput;
+
+#[inline]
+pub(super) fn is_token_char(c: char) -> bool {
+    match c {
+        '\\' | '|' | '^' | '$' | '*' | '+' | '-' | '?' | '{' | '[' | ']' | ':' | '.' | '='
+        | '(' | ')' => true,
+        _ => false,
+    }
+}
