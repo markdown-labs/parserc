@@ -1,21 +1,21 @@
 use std::cmp;
 
 use parserc::{
-    ControlFlow, Parser, Span, next,
-    syntax::{InputSyntaxExt, Syntax},
+    ControlFlow, Parser, Span,
+    syntax::{Delimiter, Syntax},
     take_while_range_from,
 };
 
 use crate::{
     errors::{CompileError, RegexError},
     input::PatternInput,
-    pattern::{Escape, is_token_char},
+    pattern::{BracketEnd, BracketStart, Caret, Escape, is_token_char},
 };
 
 /// Char in character class.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Chars<I>
+pub enum ClassChars<I>
 where
     I: PatternInput,
 {
@@ -27,7 +27,7 @@ where
     Range { from: char, to: char, input: I },
 }
 
-impl<I> Syntax<I> for Chars<I>
+impl<I> Syntax<I> for ClassChars<I>
 where
     I: PatternInput,
 {
@@ -83,9 +83,9 @@ where
     #[inline]
     fn to_span(&self) -> parserc::Span {
         match self {
-            Chars::Escape(escape) => escape.to_span(),
-            Chars::Sequnce(input) => input.to_span(),
-            Chars::Range {
+            ClassChars::Escape(escape) => escape.to_span(),
+            ClassChars::Sequnce(input) => input.to_span(),
+            ClassChars::Range {
                 from: _,
                 to: _,
                 input,
@@ -95,92 +95,44 @@ where
 }
 
 /// Character class.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CharClass<I>
+pub struct Class<I>(
+    pub Delimiter<BracketStart<I>, BracketEnd<I>, (Option<Caret<I>>, Vec<ClassChars<I>>)>,
+)
 where
-    I: PatternInput,
-{
-    /// '['
-    pub delimiter_start: I,
-    /// negated flag `^`
-    pub negated: Option<I>,
-    /// Sequence of chars.
-    pub chars: Vec<Chars<I>>,
-    /// `]`
-    pub delimiter_end: I,
-}
-
-impl<I> Syntax<I> for CharClass<I>
-where
-    I: PatternInput,
-{
-    fn parse(input: &mut I) -> Result<Self, <I as parserc::Input>::Error> {
-        let delimiter_start = next('[')
-            .parse(input)
-            .map_err(CompileError::CharClass.map())?;
-
-        let negated = next('^')
-            .ok()
-            .parse(input)
-            .map_err(CompileError::CharClass.map_fatal())?;
-
-        let chars: Vec<Chars<_>> = input.parse().map_err(CompileError::CharClass.map_fatal())?;
-
-        if chars.is_empty() {
-            return Err(RegexError::Compile(
-                CompileError::CharClass,
-                ControlFlow::Fatal,
-                Span::Range(delimiter_start.start()..delimiter_start.start()),
-            ));
-        }
-
-        let delimiter_end = next(']')
-            .parse(input)
-            .map_err(CompileError::CharClass.map_fatal())?;
-
-        Ok(Self {
-            delimiter_start,
-            negated,
-            chars,
-            delimiter_end,
-        })
-    }
-
-    #[inline]
-    fn to_span(&self) -> Span {
-        self.delimiter_start.to_span() + self.delimiter_end.to_span()
-    }
-}
+    I: PatternInput;
 
 #[cfg(test)]
 mod tests {
     use parserc::{
         ControlFlow, Span,
-        syntax::{Char, InputSyntaxExt},
+        syntax::{Char, Delimiter, InputSyntaxExt},
     };
 
     use crate::{
         errors::{CompileError, RegexError},
         input::TokenStream,
-        pattern::{BackSlash, CharClass, Chars, Escape, FixedDigits},
+        pattern::{
+            BackSlash, BracketEnd, BracketStart, Caret, Class, ClassChars, Escape, FixedDigits,
+        },
     };
 
     #[test]
     fn test_chars() {
         assert_eq!(
             TokenStream::from("1234").parse(),
-            Ok(Chars::Sequnce(TokenStream::from("1234")))
+            Ok(ClassChars::Sequnce(TokenStream::from("1234")))
         );
 
         assert_eq!(
             TokenStream::from("1234-9").parse(),
-            Ok(Chars::Sequnce(TokenStream::from("123")))
+            Ok(ClassChars::Sequnce(TokenStream::from("123")))
         );
 
         assert_eq!(
             TokenStream::from("a-z").parse(),
-            Ok(Chars::Range {
+            Ok(ClassChars::Range {
                 from: 'a',
                 to: 'z',
                 input: TokenStream::from("a-z")
@@ -189,7 +141,7 @@ mod tests {
 
         assert_eq!(
             TokenStream::from("0-9").parse(),
-            Ok(Chars::Range {
+            Ok(ClassChars::Range {
                 from: '0',
                 to: '9',
                 input: TokenStream::from("0-9")
@@ -198,14 +150,14 @@ mod tests {
 
         assert_eq!(
             TokenStream::from(r"\123a-z").parse(),
-            Ok(Chars::Escape(Escape::BackReference(
+            Ok(ClassChars::Escape(Escape::BackReference(
                 BackSlash(TokenStream::from((0, r"\"))),
                 FixedDigits(TokenStream::from((1, "12")))
             ),))
         );
 
         assert_eq!(
-            TokenStream::from("z-a").parse::<Chars<_>>(),
+            TokenStream::from("z-a").parse::<ClassChars<_>>(),
             Err(RegexError::Compile(
                 CompileError::CharRange,
                 ControlFlow::Fatal,
@@ -214,7 +166,7 @@ mod tests {
         );
 
         assert_eq!(
-            TokenStream::from("z-").parse::<Chars<_>>(),
+            TokenStream::from("z-").parse::<ClassChars<_>>(),
             Err(RegexError::Compile(
                 CompileError::CharRange,
                 ControlFlow::Fatal,
@@ -226,46 +178,30 @@ mod tests {
     #[test]
     fn test_char_class() {
         assert_eq!(
-            TokenStream::from(r"[^\f0-9]").parse(),
-            Ok(CharClass {
-                delimiter_start: TokenStream::from("["),
-                negated: Some(TokenStream::from((1, "^"))),
-                chars: vec![
-                    Chars::Escape(Escape::FF(
-                        BackSlash(TokenStream::from((2, r"\"))),
-                        Char(TokenStream::from((3, "f")))
-                    )),
-                    Chars::Range {
-                        from: '0',
-                        to: '9',
-                        input: TokenStream::from((4, "0-9"))
-                    }
-                ],
-                delimiter_end: TokenStream::from((7, "]"))
-            })
-        );
-
-        assert_eq!(
-            TokenStream::from(r"[\f\f\n]").parse(),
-            Ok(CharClass {
-                delimiter_start: TokenStream::from("["),
-                negated: None,
-                chars: vec![
-                    Chars::Escape(Escape::FF(
-                        BackSlash(TokenStream::from((1, r"\"))),
-                        Char(TokenStream::from((2, "f")))
-                    )),
-                    Chars::Escape(Escape::FF(
-                        BackSlash(TokenStream::from((3, r"\"))),
-                        Char(TokenStream::from((4, "f")))
-                    )),
-                    Chars::Escape(Escape::LF(
-                        BackSlash(TokenStream::from((5, r"\"))),
-                        Char(TokenStream::from((6, "n")))
-                    )),
-                ],
-                delimiter_end: TokenStream::from((7, "]"))
-            })
-        );
+            TokenStream::from(r"[^\f\thello0-9]").parse(),
+            Ok(Class(Delimiter {
+                start: BracketStart(TokenStream::from("[")),
+                end: BracketEnd(TokenStream::from((14, "]"))),
+                body: (
+                    Some(Caret(TokenStream::from((1, "^")))),
+                    vec![
+                        ClassChars::Escape(Escape::FF(
+                            BackSlash(TokenStream::from((2, r"\"))),
+                            Char(TokenStream::from((3, "f")))
+                        )),
+                        ClassChars::Escape(Escape::TF(
+                            BackSlash(TokenStream::from((4, r"\"))),
+                            Char(TokenStream::from((5, "t")))
+                        )),
+                        ClassChars::Sequnce(TokenStream::from((6, "hello"))),
+                        ClassChars::Range {
+                            from: '0',
+                            to: '9',
+                            input: TokenStream::from((11, "0-9"))
+                        }
+                    ]
+                )
+            }))
+        )
     }
 }
