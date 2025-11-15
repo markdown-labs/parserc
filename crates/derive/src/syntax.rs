@@ -180,11 +180,11 @@ fn derive_syntax_for_enum(item: ItemEnum) -> Result<proc_macro2::TokenStream> {
                 .map(|member| match member {
                     syn::Member::Named(ident) => {
                         quote! {
-                            #ident: input.parse()#map_err?
+                            #ident: input.parse()?
                         }
                     }
                     syn::Member::Unnamed(_) => {
-                        quote! {input.parse()#map_err?}
+                        quote! {input.parse()?}
                     }
                 })
                 .collect::<Vec<_>>();
@@ -268,7 +268,7 @@ fn derive_syntax_for_enum(item: ItemEnum) -> Result<proc_macro2::TokenStream> {
                 use parserc::Parser;
                 #(#fields)*
 
-                Err(parserc::Kind::Syntax(#ident_str,parserc::ControlFlow::Recovable,input.to_span()).into())
+                Err(parserc::Kind::Syntax(#ident_str,parserc::ControlFlow::Recovable,input.to_span()).into())#map_err
             }
 
             #[inline]

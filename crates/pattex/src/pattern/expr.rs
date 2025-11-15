@@ -1,5 +1,6 @@
 use parserc::syntax::{Delimiter, Syntax};
 
+use crate::errors::CompileError;
 use crate::input::PatternInput;
 use crate::pattern::{
     Caret, Class, Dollar, Escape, Or, ParenEnd, ParenStart, Plus, Question, Repeat, Star,
@@ -17,7 +18,7 @@ where
 /// A non-root pattern sequence.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-// #[syntax(map_err = |err| err.into_fatal())]
+#[syntax(map_err = CompileError::SubPattern.map())]
 pub enum SubPattern<I>
 where
     I: PatternInput,

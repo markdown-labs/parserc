@@ -25,6 +25,8 @@ pub enum CompileError {
     CharRange,
     #[error("character class")]
     CharClass,
+    #[error("sub-pattern")]
+    SubPattern,
 }
 
 impl CompileError {
