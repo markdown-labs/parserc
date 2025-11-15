@@ -2,7 +2,8 @@ use parserc::syntax::{Delimiter, Syntax};
 
 use crate::input::PatternInput;
 use crate::pattern::{
-    Class, Escape, ParenEnd, ParenStart, Plus, Question, Repeat, Star, is_token_char,
+    Caret, Class, Dollar, Escape, Or, ParenEnd, ParenStart, Plus, Question, Repeat, Star,
+    is_token_char,
 };
 
 /// Pattern of a sequence of characters.
@@ -16,7 +17,8 @@ where
 /// A non-root pattern sequence.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Pattern<I>
+// #[syntax(map_err = |err| err.into_fatal())]
+pub enum SubPattern<I>
 where
     I: PatternInput,
 {
@@ -25,7 +27,7 @@ where
     /// A escape sub-pattern.
     Escap(Escape<I>),
     /// A capture of sub-pattern sequence.
-    Capture(Delimiter<ParenStart<I>, ParenEnd<I>, Vec<Pattern<I>>>),
+    Capture(Delimiter<ParenStart<I>, ParenEnd<I>, Vec<SubPattern<I>>>),
     /// A repeat sub-pattern.
     Repeat(Repeat<I>),
     /// A start sub-pattern.
@@ -36,6 +38,23 @@ where
     Plus(Plus<I>),
     /// A character class sub-pattern.
     Class(Class<I>),
+    /// A '|' sub-pattern.
+    Or(Or<I>),
+}
+
+/// Pattern sequence.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Syntax)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Pattern<I>
+where
+    I: PatternInput,
+{
+    /// Match the start of the input string.
+    pub start: Option<Caret<I>>,
+    /// A sequence of sub-patterns.
+    pub patterns: Vec<SubPattern<I>>,
+    /// Match the end of the input string.
+    pub end: Option<Dollar<I>>,
 }
 
 #[cfg(test)]
@@ -45,19 +64,30 @@ mod tests {
     use crate::{
         input::TokenStream,
         pattern::{
-            BackSlash, BracketEnd, BracketStart, Caret, Class, ClassChars, Digits, Escape,
-            ParenEnd, ParenStart, Pattern, PatternChars, Plus, Question, Repeat, Star,
+            BackSlash, BracketEnd, BracketStart, Caret, Class, ClassChars, Digits, Dollar, Dot,
+            Escape, Minus, Or, ParenEnd, ParenStart, Pattern, PatternChars, Plus, Question, Repeat,
+            Star, SubPattern,
         },
     };
+
+    #[test]
+    fn chars() {
+        assert_eq!(
+            TokenStream::from("://").parse(),
+            Ok(SubPattern::Chars(PatternChars(TokenStream::from("://"))))
+        );
+    }
 
     #[test]
     fn capture() {
         assert_eq!(
             TokenStream::from("(abc)").parse(),
-            Ok(Pattern::Capture(Delimiter {
+            Ok(SubPattern::Capture(Delimiter {
                 start: ParenStart(TokenStream::from("(")),
                 end: ParenEnd(TokenStream::from((4, ")"))),
-                body: vec![Pattern::Chars(PatternChars(TokenStream::from((1, "abc"))))]
+                body: vec![SubPattern::Chars(PatternChars(TokenStream::from((
+                    1, "abc"
+                ))))]
             }))
         );
     }
@@ -67,7 +97,7 @@ mod tests {
         assert_eq!(
             TokenStream::from(r"[^\f\thello0-9]*").parse(),
             Ok(vec![
-                Pattern::Class(Class(Delimiter {
+                SubPattern::Class(Class(Delimiter {
                     start: BracketStart(TokenStream::from("[")),
                     end: BracketEnd(TokenStream::from((14, "]"))),
                     body: (
@@ -90,7 +120,7 @@ mod tests {
                         ]
                     )
                 })),
-                Pattern::Star(Star(TokenStream::from((15, "*"))))
+                SubPattern::Star(Star(TokenStream::from((15, "*"))))
             ])
         )
     }
@@ -100,8 +130,8 @@ mod tests {
         assert_eq!(
             TokenStream::from("abc{2}").parse(),
             Ok(vec![
-                Pattern::Chars(PatternChars(TokenStream::from("abc"))),
-                Pattern::Repeat(Repeat::Repeat {
+                SubPattern::Chars(PatternChars(TokenStream::from("abc"))),
+                SubPattern::Repeat(Repeat::Repeat {
                     n: Digits {
                         value: 2,
                         input: TokenStream::from((4, "2"))
@@ -114,25 +144,231 @@ mod tests {
         assert_eq!(
             TokenStream::from("abc*").parse(),
             Ok(vec![
-                Pattern::Chars(PatternChars(TokenStream::from("abc"))),
-                Pattern::Star(Star(TokenStream::from((3, "*"))))
+                SubPattern::Chars(PatternChars(TokenStream::from("abc"))),
+                SubPattern::Star(Star(TokenStream::from((3, "*"))))
             ])
         );
 
         assert_eq!(
             TokenStream::from("abc?").parse(),
             Ok(vec![
-                Pattern::Chars(PatternChars(TokenStream::from("abc"))),
-                Pattern::Question(Question(TokenStream::from((3, "?"))))
+                SubPattern::Chars(PatternChars(TokenStream::from("abc"))),
+                SubPattern::Question(Question(TokenStream::from((3, "?"))))
             ])
         );
 
         assert_eq!(
             TokenStream::from("abc+").parse(),
             Ok(vec![
-                Pattern::Chars(PatternChars(TokenStream::from("abc"))),
-                Pattern::Plus(Plus(TokenStream::from((3, "+"))))
+                SubPattern::Chars(PatternChars(TokenStream::from("abc"))),
+                SubPattern::Plus(Plus(TokenStream::from((3, "+"))))
             ])
+        );
+    }
+
+    #[test]
+    fn test_pattern() {
+        let pattern = r"^(http|https)://[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(/\S*)?$";
+        assert_eq!(
+            TokenStream::from(pattern).parse(),
+            Ok(Pattern {
+                start: Some(Caret(TokenStream {
+                    offset: 0,
+                    value: "^"
+                })),
+                patterns: vec![
+                    SubPattern::Capture(Delimiter {
+                        start: ParenStart(TokenStream {
+                            offset: 1,
+                            value: "("
+                        }),
+                        end: ParenEnd(TokenStream {
+                            offset: 12,
+                            value: ")"
+                        }),
+                        body: vec![
+                            SubPattern::Chars(PatternChars(TokenStream {
+                                offset: 2,
+                                value: "http"
+                            })),
+                            SubPattern::Or(Or(TokenStream {
+                                offset: 6,
+                                value: "|"
+                            })),
+                            SubPattern::Chars(PatternChars(TokenStream {
+                                offset: 7,
+                                value: "https"
+                            }))
+                        ]
+                    }),
+                    SubPattern::Chars(PatternChars(TokenStream {
+                        offset: 13,
+                        value: "://"
+                    })),
+                    SubPattern::Class(Class(Delimiter {
+                        start: BracketStart(TokenStream {
+                            offset: 16,
+                            value: "["
+                        }),
+                        end: BracketEnd(TokenStream {
+                            offset: 30,
+                            value: "]"
+                        }),
+                        body: (
+                            None,
+                            vec![
+                                ClassChars::Range {
+                                    from: 'a',
+                                    to: 'z',
+                                    input: TokenStream {
+                                        offset: 17,
+                                        value: "a-z"
+                                    }
+                                },
+                                ClassChars::Range {
+                                    from: 'A',
+                                    to: 'Z',
+                                    input: TokenStream {
+                                        offset: 20,
+                                        value: "A-Z"
+                                    }
+                                },
+                                ClassChars::Range {
+                                    from: '0',
+                                    to: '9',
+                                    input: TokenStream {
+                                        offset: 23,
+                                        value: "0-9"
+                                    }
+                                },
+                                ClassChars::Escape(Escape::Minus(
+                                    BackSlash(TokenStream {
+                                        offset: 26,
+                                        value: "\\"
+                                    }),
+                                    Minus(TokenStream {
+                                        offset: 27,
+                                        value: "-"
+                                    })
+                                )),
+                                ClassChars::Escape(Escape::Dot(
+                                    BackSlash(TokenStream {
+                                        offset: 28,
+                                        value: "\\"
+                                    }),
+                                    Dot(TokenStream {
+                                        offset: 29,
+                                        value: "."
+                                    })
+                                ))
+                            ]
+                        )
+                    })),
+                    SubPattern::Plus(Plus(TokenStream {
+                        offset: 31,
+                        value: "+"
+                    })),
+                    SubPattern::Escap(Escape::Dot(
+                        BackSlash(TokenStream {
+                            offset: 32,
+                            value: "\\"
+                        }),
+                        Dot(TokenStream {
+                            offset: 33,
+                            value: "."
+                        })
+                    )),
+                    SubPattern::Class(Class(Delimiter {
+                        start: BracketStart(TokenStream {
+                            offset: 34,
+                            value: "["
+                        }),
+                        end: BracketEnd(TokenStream {
+                            offset: 41,
+                            value: "]"
+                        }),
+                        body: (
+                            None,
+                            vec![
+                                ClassChars::Range {
+                                    from: 'a',
+                                    to: 'z',
+                                    input: TokenStream {
+                                        offset: 35,
+                                        value: "a-z"
+                                    }
+                                },
+                                ClassChars::Range {
+                                    from: 'A',
+                                    to: 'Z',
+                                    input: TokenStream {
+                                        offset: 38,
+                                        value: "A-Z"
+                                    }
+                                }
+                            ]
+                        )
+                    })),
+                    SubPattern::Repeat(Repeat::Range {
+                        n: Digits {
+                            value: 2,
+                            input: TokenStream {
+                                offset: 43,
+                                value: "2"
+                            }
+                        },
+                        m: Digits {
+                            value: 3,
+                            input: TokenStream {
+                                offset: 45,
+                                value: "3"
+                            }
+                        },
+                        input: TokenStream {
+                            offset: 42,
+                            value: "{2,3}"
+                        }
+                    }),
+                    SubPattern::Capture(Delimiter {
+                        start: ParenStart(TokenStream {
+                            offset: 47,
+                            value: "("
+                        }),
+                        end: ParenEnd(TokenStream {
+                            offset: 52,
+                            value: ")"
+                        }),
+                        body: vec![
+                            SubPattern::Chars(PatternChars(TokenStream {
+                                offset: 48,
+                                value: "/"
+                            })),
+                            SubPattern::Escap(Escape::NonS(
+                                BackSlash(TokenStream {
+                                    offset: 49,
+                                    value: "\\"
+                                }),
+                                Char(TokenStream {
+                                    offset: 50,
+                                    value: "S"
+                                })
+                            )),
+                            SubPattern::Star(Star(TokenStream {
+                                offset: 51,
+                                value: "*"
+                            }))
+                        ]
+                    }),
+                    SubPattern::Question(Question(TokenStream {
+                        offset: 53,
+                        value: "?"
+                    }))
+                ],
+                end: Some(Dollar(TokenStream {
+                    offset: 54,
+                    value: "$"
+                }))
+            })
         );
     }
 }
